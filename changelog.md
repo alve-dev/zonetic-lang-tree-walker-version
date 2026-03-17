@@ -53,10 +53,10 @@ This is the biggest and most important update to date. Nearly everything was rew
 - Scope chain with `Symbol` entries
 
 **Documentation** *(all created in this version)*
-- `NERT`, `precedence_doc`, `forms_doc`, `condition_field_doc`
-- `types_doc`, `expression_doc`, `statements_doc`, `variable_vs_value_doc`
-- `declaration_stmt_doc`, `assignment_stmt_doc`, `give_stmt_doc`
-- `break_stmt_doc`, `continue_stmt_doc`
+- [`NERT`](docs/expressions/NERT.md), [`precedence_doc`](docs/expressions/precedence.md), [`forms_doc`](docs/forms/forms_doc.md), [`condition_field_doc`](docs/forms/condition_field_doc.md)
+- [`types_doc`](docs/others/types_doc.md), [`expression_doc`](docs/expressions/expression_doc.md), [`statements_doc`](docs/statements/statements_doc.md), [`variable_vs_value_doc`](docs/others/variable_vs_value_doc.md)
+- [`declaration_stmt_doc`](docs/statements/declaration_stmt_doc.md), [`assignment_stmt_doc`](docs/statements/assignment_stmt_doc.md), [`give_stmt_doc`](docs/statements/give_stmt_doc.md)
+- [`break_stmt_doc`](docs/statements//break_stmt_doc.md), [`continue_stmt_doc`](docs/statements//continue_stmt_doc.md)
 
 > Interpreter rewrite pending — will complete this version.
 
