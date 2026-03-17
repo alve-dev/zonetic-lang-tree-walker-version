@@ -32,3 +32,7 @@ while counter < 10 {
 
 ## Documentation
 See [`docs/`](docs/) for full language documentation.
+
+![Status](https://img.shields.io/badge/status-in--development-blue)
+![Language](https://img.shields.io/badge/written%20in-Python-yellow)
+[![Version](https://img.shields.io/badge/version-0--1--6-orange)](changelog.md)  <-- click me to see the changelog
