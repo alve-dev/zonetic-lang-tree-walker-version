@@ -92,15 +92,21 @@ def cmd_akorn_run(rute_script: str, cmd: str = "run"):
             e.error_code,
             e.arg,
             e.span_code,
-            e.span_error
+            e.span_error,
+            e.traceback,
+            e.call_stack
         )
         diagnostic.display()
         diagnostic.clear_engine()
         return
     
+    except KeyboardInterrupt:
+        print("""\nZonetic: program interrupted by user.
+-- Did an infinite loop get you? Check your loops and conditions.""")
+    
    
 def cmd_akorn_version():
-    print("--Zonetic Programming Language: v0.0.9--")
+    print("--Zonetic Programming Language: v0.1.1--")
 
 
 def cmd_akorn_help():
@@ -114,4 +120,3 @@ def cmd_akorn_help():
     print("-token: Command that executes an akon script up to the lexer and displays the created tokens, syntax: akon token [path to akon script]\n")
     print("-version: displays the current language version, syntax: akon version\n")
     
-        

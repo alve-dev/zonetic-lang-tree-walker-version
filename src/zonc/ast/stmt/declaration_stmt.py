@@ -8,11 +8,13 @@ class DeclarationStmt(NodeStmt):
         name: str,
         mut: bool,
         type: ZonType,
+        span_name: Span,
         span: Span,
     ):
         self.name = name
         self.mut = mut
         self.type = type
+        self.span_name = span_name
         self.span = span
         
     

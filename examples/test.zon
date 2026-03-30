@@ -1,0 +1,3 @@
+inmut a = readInt("Numero: ")
+print(5 * a, "Hola", "Hola")
+print("que tal?")

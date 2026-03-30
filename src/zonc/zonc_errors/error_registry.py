@@ -28,7 +28,7 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
         error_code=ErrorCode.E0003,
         severity=Severity.ERROR,
         message="I encountered an escape sequence I don't know: `{escape}`.",
-        note="Zonetic only supports standard escape sequences like \\n, \\t, \\\, among others.",
+        note=f"Zonetic only supports standard escape sequences like {"\\"}n, {"\\"}t, {"\\"}\, among others.",
         zonny="""
         [ ~_~] <("Is `{escape}` supposed to be some secret robot code? Because 
                  it's not in my manual. Just delete it or use a valid 
@@ -61,7 +61,7 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
     
     ErrorCode.E0005 : ErrorDefinition(
         error_code=ErrorCode.E0005,
-        severity=Severity.ERROR,
+        severity=Severity.ERROR, 
         message="A floating point number can only have one decimal point, but I found more than one.",
         note="""
         In Zonetic, a float is written as digits, one `.`, and more digits. 
@@ -69,6 +69,19 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
         zonny="""
         [ o_0] <("More than one dot in a number? Pick one decimal point 
                  and stick with it — remove the extra ones.")"""
+    ),
+    
+    ErrorCode.E0006 : ErrorDefinition(
+      error_code=ErrorCode.E0006,
+      severity=Severity.ERROR,
+      message="`{token}` is not a valid identifier — identifiers cannot start with a digit.",
+      note="""
+      In Zonetic, a valid identifier must start with a letter `a-z`, `A-Z`, or `_`. 
+      Digits are allowed after the first character, but never at the start.""",
+      zonny="""
+      [ ~_~] <("`{token}` looks like you wanted an identifier but started with a number. 
+               Flip it around — start with a letter or `_` 
+               and put the digits after.")"""
     ),
     
     ErrorCode.E1001 : ErrorDefinition(
@@ -262,6 +275,184 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                wrap your code in a block or remove the `give`.")"""
     ),
     
+    ErrorCode.E2013 : ErrorDefinition(
+      error_code=ErrorCode.E2013,
+      severity=Severity.ERROR,
+      message="Expected a function name after `func`, but found `{token}` instead.",
+      note="In Zonetic, `func` must be followed by a valid identifier — the name of the function.",
+      zonny="""
+      [ o_0] <("A function with no name? How am I supposed to call it? 
+               Give it a valid identifier right after `func`.")"""
+    ),
+    
+    ErrorCode.E2014 : ErrorDefinition(
+      error_code=ErrorCode.E2014,
+      severity=Severity.ERROR,
+      message="Expected `(` after function name `{name}`, but found `{token}` instead.",
+      note="""
+      In Zonetic, the function name must be followed by `(` to open the parameter list, 
+      even if the function has no parameters.""",
+      zonny="""
+      [ ~_~] <("`{name}` needs a `(` right after it to open the parameter list. 
+               Don't forget the closing `)` either — 
+               I need both to know where the parameters start and end.")"""
+    ),
+    
+    ErrorCode.E2015 : ErrorDefinition(
+      error_code=ErrorCode.E2015,
+      severity=Severity.ERROR,
+      message="Expected `=` after `{name}` to complete the keyparam, but found `{token}` instead.",
+      note="""
+      In Zonetic, a keyparam must follow the structure `name=value`. 
+      `{name}` was recognized as a parameter name but `=` was never found to complete it.""",
+      zonny="""
+      [ ~_~] <("You started a keyparam with '{name}' but forgot the '='. 
+               Keyparams need a value — write '{name}=value' 
+               to complete it.")"""
+    ),
+    
+    ErrorCode.E2016 : ErrorDefinition(
+      error_code=ErrorCode.E2016,
+      severity=Severity.ERROR,
+      message="Expected `mut` or `inmut` to start a parameter, but found `{token}` instead.",
+      note="""
+      In Zonetic, every parameter must start with a mutability keyword — `mut` or `inmut`. 
+      A complete parameter follows this structure: `mut | inmut name: type [= default]`.""",
+      zonny="""
+      [ o_0] <("This isn't Python — parameters don't just start with a name here. 
+               Begin with `mut` or `inmut` so I know 
+               what I'm allowed to do with this parameter.")"""
+    ),
+    
+    ErrorCode.E2017 : ErrorDefinition(
+      error_code=ErrorCode.E2017,
+      severity=Severity.ERROR,
+      message="Expected a parameter name after `{mut_keyword}`, but found `{token}` instead.",
+      note="In Zonetic, after the mutability keyword a valid identifier must follow — the name of the parameter.",
+      zonny="""
+      [ ~_~] <("You told me the mutability but forgot the name. 
+               Give this parameter a valid identifier 
+               so I know what to call it.")"""
+    ),
+    
+    ErrorCode.E2018 : ErrorDefinition(
+      error_code=ErrorCode.E2018,
+      severity=Severity.ERROR,
+      message="`void` is not valid here.",
+      note="""
+      In Zonetic, `void` is only valid as a function return type after `->`. 
+      It cannot be used as a variable type or a parameter type — 
+      `void` means the absence of a value, not a type you can hold.""",
+      zonny="""
+      [ 0_0] <("`void` means nothing — literally. 
+               You can't store nothing in a variable or pass nothing as a parameter. 
+               `void` only makes sense after `->` to say a function returns nothing.")"""
+    ),
+    
+    ErrorCode.E2019 : ErrorDefinition(
+      error_code=ErrorCode.E2019,
+      severity=Severity.ERROR,
+      message="`{type}` is not a valid type for a parameter.",
+      note="""
+      In Zonetic, parameter types are always required and must be a valid type. 
+      Unlike variables, parameters cannot have their type inferred — 
+      every parameter must declare its type explicitly.""",
+      zonny="""
+      [ o_0] <("`{type}` is not a type I know. 
+               Parameters have no inference — you have to be explicit here. 
+               Use a valid type and check the types doc if you're not sure.")"""
+    ),
+    
+    ErrorCode.E2020 : ErrorDefinition(
+      error_code=ErrorCode.E2020,
+      severity=Severity.ERROR,
+      message="Expected `:` after parameter name `{name}` to declare its type.",
+      note="""
+      In Zonetic, parameter types are always required. Unlike variables, parameters 
+      cannot be left without a type — use `:` followed by a valid type to declare it.""",
+      zonny="""
+      [ ~_~] <("`{name}` needs a type — I can't infer it here. 
+               Add `:` followed by a valid type 
+               and I'll know exactly what to expect.")"""
+    ),
+    
+    ErrorCode.E2021 : ErrorDefinition(
+      error_code=ErrorCode.E2021,
+      severity=Severity.ERROR,
+      message="Expected `->` after the parameter list, but found `{token}` instead.",
+      note="""
+      In Zonetic, every function must declare its return type explicitly using `->`. 
+      Use `-> void` if the function returns nothing.""",
+      zonny="""
+      [ ~_~] <("The parameter list closed fine but then `{token}` showed up. 
+               I need `->` to know what this function returns — 
+               even if it's `-> void`.")"""
+    ),
+    
+    ErrorCode.E2022 : ErrorDefinition(
+      error_code=ErrorCode.E2022,
+      severity=Severity.ERROR,
+      message="Expected a valid return type after `->'`, but found `{token}` instead.",
+      note="""
+      In Zonetic, `->` must be followed by a valid type or `void`. 
+      Every function return type is always explicit — there is no inference here.""",
+      zonny="""
+      [ o_0] <("`->` was there, that's great, but `{token}` is not a valid return type. 
+          Use a valid type or `void` if this function 
+          returns nothing.")"""
+    ),
+    
+    ErrorCode.E2023 : ErrorDefinition(
+      error_code=ErrorCode.E2023,
+      severity=Severity.ERROR,
+      message="Parameter `{name}` was already passed in this call.",
+      note="""
+      In Zonetic, each parameter can only receive one value per call. 
+      `{name}` appears more than once — remove the duplicate.""",
+      zonny="""
+      [ ~_~] <("`{name}` already has a value in this call. 
+               You can't pass it twice — pick one and remove the other.")"""
+    ),
+    
+    ErrorCode.E2024 : ErrorDefinition(
+      error_code=ErrorCode.E2024,
+      severity=Severity.ERROR,
+      message="Positional parameter found after a keyparam — all following parameters must be keyparams.",
+      note="""
+      In Zonetic, once a keyparam is used in a call, every following parameter 
+      must also be passed by name. Mixing back to positional is not allowed.""",
+      zonny="""
+      [ ~_~] <("You switched to keyparams and then went back to positional. 
+               Once you name one, name them all — 
+               use `name = value` for every remaining parameter.")"""
+    ),
+    
+    ErrorCode.E2025 : ErrorDefinition(
+      error_code=ErrorCode.E2025,
+      severity=Severity.ERROR,
+      message="Expected `,` or `)` after parameter, but found `{token}` instead.",
+      note="""
+      In Zonetic, parameters must be separated by `,` and the list 
+      must always be closed with `)` — both in function declarations and calls.""",
+      zonny="""
+      [ ~_~] <("I just read a parameter and then `{token}` showed up. 
+               Use `,` to continue the parameter list 
+               or `)` to close it.")"""
+    ),
+    
+    ErrorCode.E2026 : ErrorDefinition(
+      error_code=ErrorCode.E2026,
+      severity=Severity.ERROR,
+      message="`return` found outside of any block.",
+      note="""
+      In Zonetic, 'return' can only be used inside a function body. 
+      It has no meaning outside of a block expression.""",
+      zonny="""
+      [ 0_0] <("'return' with nowhere to return from. 
+               Put it inside a function body — 
+               outside of a block it does absolutely nothing.")"""
+    ),
+    
     ErrorCode.E3001 : ErrorDefinition(
       error_code=ErrorCode.E3001,
       severity=Severity.ERROR,
@@ -431,7 +622,7 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
     ErrorCode.W3002 : ErrorDefinition(
       error_code=ErrorCode.W3002,
       severity=Severity.WARNING,
-      message="This `if` condition is always `true` — all following branches are unreachable.",
+      message="This condition is always `true` — all following branches are unreachable.",
       note="""
       In Zonetic, when an 'if' condition is a 'true' literal, the first block 
       always executes and every 'elif' and 'else' branch is never reached. 
@@ -471,7 +662,7 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                or remove it if it doesn't belong.")"""
     ),
      
-      ErrorCode.W3004 : ErrorDefinition(
+    ErrorCode.W3004 : ErrorDefinition(
       error_code=ErrorCode.W3004,
       severity=Severity.WARNING,
       message="This loop has no `break` statement — it may run forever.",
@@ -482,7 +673,243 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
       zonny="""
       [ ~_~] <("I don't see a single `break` in here. 
                This loop is going to run forever and I can't stop it. 
-               Add a `break` somewhere or I hope you like waiting."))"""
+               Add a `break` somewhere or I hope you like waiting.")"""
+    ),
+    
+    ErrorCode.E3013 : ErrorDefinition(
+      error_code=ErrorCode.E3013,
+      severity=Severity.ERROR,
+      message="The name `{name}` is already defined as a function.",
+      note="""
+      In Zonetic, function names are global and do not support shadowing.
+      Unlike variables, once a name is assigned to a function, it cannot
+      be reused for another `{kind}` in any scope to avoid ambiguity.""",
+      zonny="""
+      [ o_0] <("The name `{name}` is already taken by a function! I can't have two things
+               named the same way, I'd get confused about which one to call.
+               Give your new `{kind}` a unique name.")"""
+    ),
+    
+    ErrorCode.E3014 : ErrorDefinition(
+      error_code=ErrorCode.E3014,
+      severity=Severity.ERROR,
+      message="`return` statement found outside of a function.",
+      note="""
+      In Zonetic, the `return` keyword is strictly reserved for exiting
+      functions and passing a result to the caller. Even inside  an `if`, `while`,
+      `for`, etc., `return` can only be used if  those blocks are nested within a
+      `func` declaration.""",
+      zonny="""
+      [ o_0] <("You're trying to `return` from here, but I can't find a function to
+               exit from! If you just want to stop this block, remove  this `return`. If you're
+               trying to yield a value from a block expression, use `give` instead.")"""
+    ),
+    
+    ErrorCode.E3015 : ErrorDefinition(
+      error_code=ErrorCode.E3015,
+      severity=Severity.ERROR,
+      message="Mismatched return type in function `{func_name}`.",
+      note="""
+      In Zonetic, every function must strictly follow its return contract.
+      The type defined after `->` must match the value in the `return` statement.
+      If the function is `void`, no value should be  returned. Check NERT (Native
+      Expression Return Types) documentation to verify what each expression returns.""",
+      zonny="""
+      [ ~_~] <("You promised `{func_name}` would return `{expected}`, but you gave me
+               `{found}`! A robot needs to know exactly what it's getting to avoid a short
+               circuit. Change the expression to  match `{expected}` or, if it's `void`, just
+               use `return`.")"""
+    ),
+    
+    ErrorCode.W3005 : ErrorDefinition(
+      error_code=ErrorCode.W3005,
+      severity=Severity.WARNING,
+      message="Unreachable code after `return` statement.",
+      note="""
+      In Zonetic, a `return` statement immediately exits the current
+      function. Everything below this line, until the closing brace  `{aux}` of the `func`
+      body, is dead code. It will be ignored by  the compiler and excluded from the
+      final binary, which might lead to confusion if you expect it to run.""",
+      zonny="""
+      [ -_-] <("Once I hit this 'return', I'm jumping straight out of the function!
+               Anything you wrote between here and the final '{aux}'  is invisible to me. If you
+               need that code to run, move it  above the 'return' or delete it to keep things
+               clean.")"""
+    ),
+    
+    ErrorCode.E3016 : ErrorDefinition(
+      error_code=ErrorCode.E3016,
+      severity=Severity.ERROR,
+      message="illegal immutable initialization in loop.",
+      note="""
+      In Zonetic, loops are unpredictable. Initializing an outer `inmut` here 
+      could leave it empty or force a re-assignment. Use `mut` for external 
+      changes or declare a local `inmut` inside the loop.""",
+      zonny="""
+      [ 0_0] <("You're gambling with immutability! If the loop never runs, the 
+               variable stays empty; if it runs twice, it's no longer 'inmut'.
+               Don't make me guess! Use `inmut` inside the loop if you need it 
+               locally, or switch to `mut` if it must change. Keep your outer 
+               `inmut` for read-only values!")"""
+    ),
+    
+    ErrorCode.E3017 : ErrorDefinition(
+      error_code=ErrorCode.E3017,
+      severity=Severity.ERROR,
+      message="You cannot declare a function inside another function.",
+      note="""
+      In Zonetic, all functions must be declared at the top level. Nested
+      functions are not supported because they don't add any real value that can't be
+      achieved with global functions, and keeping them separate makes the code and 
+      the compiler much cleaner for everyone.""",
+      zonny="""
+      [ ~_~] <("A function inside a function? No thanks. In Zonetic we keep things
+               simple and organized. Move `{inner_name}` to the top level and just call it from
+               here. It's better for you and better for me.")"""
+    ),
+    
+    ErrorCode.E3018 : ErrorDefinition(
+      error_code=ErrorCode.E3018,
+      severity=Severity.ERROR,
+      message="`give` used in a non-expression block.",
+      note="""
+      In Zonetic, `give` is specifically designed to yield a value from an
+      expression block (like an `if` or `infinity` assigned to a variable). A function
+      body is a statement block, not an  expression. If you want to return a value to
+      the caller, use `return`.""",
+      zonny="""
+      [ o_0] <("You're using `give` inside a function body, but there's no variable
+               waiting for this value! It's like trying to  hand a wrench to a robot that hasn't
+               reached out its arm. Use `return` if you're finished here, or move this `give`
+               inside a valid expression block.")"""
+    ),
+    
+    ErrorCode.E3019 : ErrorDefinition(
+      error_code=ErrorCode.E3019,
+      severity=Severity.ERROR,
+      message="Function `{func_name}̣` does not return a value in all code paths.",
+      note="""
+      In Zonetic, if a function is defined to return a type, it MUST do so in
+      every possible scenario. If the `if` condition fails and there is no `else` or a
+      final `return` at the  end of the function, the program wouldn't know what to 
+      send back to the caller""",
+      zonny="""
+      [ O_O] <("What happens if the 'if' is false? You're leaving me hanging! If I
+               don't enter that block, I have nothing to  return. Either add an `else` with its
+               own `return` or put a default `return` at the very bottom of the function.")"""
+    ),
+    
+    ErrorCode.W3006 : ErrorDefinition(
+      error_code=ErrorCode.W3006,
+      severity=Severity.WARNING,
+      message="Unreachable code detected after {keyword}.",
+      note="""
+      In Zonetic, once a {keyword} is reached, the flow of control immediately jumps out of the block.
+      Any instructions placed after it are "dead code" because there is no logical path that can ever reach them.
+      Cleaning this up makes your robot's logic easier to follow and your binary smaller.""",
+      zonny="""
+      [ ~_~] <("Wait, why is this code still here? Once I see a {keyword}, I'm gone! I'll never even look at these lines.
+               Either move the {keyword} to the end or delete the ghost code.")"""
+    ),
+    
+    ErrorCode.E3020 : ErrorDefinition(
+      error_code=ErrorCode.E3020,
+      severity=Severity.ERROR,
+      message="Undefined function call.",
+      note="""
+      In Zonetic, every function call must have a clear anchor in 
+      the global or local scope. I cannot guess what a name refers 
+      to if it wasn't previously declared.""",
+      zonny="""
+      [ o_0] <("Whoops! You're calling for a function that doesn't exist. 
+               I've searched every corner of your code and `{name}` is 
+               nowhere to be found. Did you forget to define it or 
+               maybe a typo snuck in?")"""
+    ),
+    
+    ErrorCode.E3021 : ErrorDefinition(
+      error_code=ErrorCode.E3021,
+      severity=Severity.ERROR,
+      message="Unexpected parameters in function call.",
+      note="""
+      In Zonetic, function signatures are strict. If a function is 
+      declared without parameters, passing values to it creates 
+      a mismatch in the program logic.""",
+      zonny="""
+      [ ~_~] <("You're trying to give me stuff I didn't ask for! This function 
+               is a lone wolf, it doesn't need any parameters to do its job. 
+               Just clear those parameters and we're good to go.")"""
+    ),
+    
+    ErrorCode.E3022 : ErrorDefinition(
+      error_code=ErrorCode.E3022,
+      severity=Severity.ERROR,
+      message="Mismatched parameter type.",
+      note="""
+      In Zonetic, types are strict anchors for safety. A function's 
+      behavior is built around its parameter types.""",
+      zonny="""
+      [ o_0] <("Hey! You're trying to fit a square peg in a round hole. This 
+                parameter is looking for a `{expect}`, but you gave me a `{found}`. 
+                Check your logic (or the docs) and give me the right type!")"""
+    ), 
+
+    ErrorCode.E3023 : ErrorDefinition(
+      error_code=ErrorCode.E3023,
+      severity=Severity.ERROR,
+      message="Attempted to use a non-existent keyparam in `{name}`.",
+      note="""
+      In Zonetic, every keyparam used in a call must map to an 
+      existing parameter in the function signature. This strictness 
+      prevents typos and ensures data integrity""",
+      zonny="""
+      [ o_0] <("Who are you talking to? I don't know any parameter named 
+               `{name_param}` in this function. It's like calling for a Ronin 
+               who never joined the clan! Check your spelling and try again.")"""
+    ),
+    
+    ErrorCode.E3024 : ErrorDefinition(
+      error_code=ErrorCode.E3024,
+      severity=Severity.ERROR,
+      message="Parameter value collision in `{name_func}`.",
+      note="""
+      In Zonetic, each parameter can only be assigned once. 
+      The parameter `{name_param}` was already filled by a value at 
+      position {param_pos}""",
+      zonny="""
+      [ o_0] <("Whoa! You're trying to give two different values to the same 
+               parameter `{name_param}`. It already took a value from its position 
+               in the line, so this keyparam is just causing a traffic jam. 
+               One parameter, one value—that's the rule!")"""
+    ),
+    
+    ErrorCode.E3025 : ErrorDefinition(
+      error_code=ErrorCode.E3025,
+      severity=Severity.ERROR,
+      message="Missing required parameters in call to `{name_func}`.",
+      note="""
+      In Zonetic, all parameters without a default value must be 
+      provided. This ensures the function never encounters an 
+      uninitialized state during execution.""",
+      zonny="""
+      [ -_-] <("Wait! You're trying to build a bridge but you're missing {num} 
+               essential piece(s). This function can't start until every 
+               required parameter has a value. Check the definition 
+               and fill the gaps!")"""
+    ),
+    
+    ErrorCode.E3026 : ErrorDefinition(
+      error_code=ErrorCode.E3026,
+      severity=Severity.ERROR,
+      message="Void function used as expression.",
+      note="""
+      In Zonetic, functions marked as `void` do not guarantee 
+      a value. You cannot assign "nothing" to a variable.""",
+      zonny="""
+      [ o_0] <("What are you trying to catch? `{name}` doesn't return 
+               anything, it's like trying to store an echo in a box!
+               Replace this with a valid expression or use 
+               a function that doesn't return void as an expr.")"""
     ),
       
     ErrorCode.E4001 : ErrorDefinition(
@@ -500,4 +927,19 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                Make sure your divisor is never zero before operating.")"""
     ),
     
+    ErrorCode.E4002 : ErrorDefinition(
+      error_code=ErrorCode.E4002,
+      severity=Severity.ERROR,
+      message="Stack overflow — maximum recursion depth of {limit} exceeded.",
+      note="""
+      In Zonetic, the call stack has a default limit of {limit} to prevent infinite recursion. 
+      If this limit was reached, a base case is likely missing or unreachable.
+      The limit can be increased with --max-depth if deeper recursion is needed.""",
+      zonny="""
+      [ x_x] <("I just kept going and going and I ran out of stack. 
+               Add a base case so it knows when to stop — 
+               or raise --max-depth if you're sure 200 isn't enough.")"""
+    ),
+    
 }
+

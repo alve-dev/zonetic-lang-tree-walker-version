@@ -6,6 +6,7 @@ class TokenType(Enum):
     KEYWORD_FLOAT = auto()
     KEYWORD_BOOL = auto()
     KEYWORD_STRING = auto()
+    KEYWORD_VOID = auto()
 
     KEYWORD_MUT = auto()
     KEYWORD_INMUT = auto()
@@ -19,10 +20,10 @@ class TokenType(Enum):
     KEYWORD_BREAK = auto()
     KEYWORD_CONTINUE = auto()
     
-    KEYWORD_PRINT = auto()
-    KEYWORD_INPUT = auto()
-    
     KEYWORD_GIVE = auto()
+    
+    KEYWORD_FUNC = auto()
+    KEYWORD_RETURN = auto()
     
     # LOGIC GATES BOOL
     GATE_AND = auto()
@@ -59,6 +60,7 @@ class TokenType(Enum):
     SEMICOLON = auto()
     COMMA = auto()
     NEWLINE = auto()
+    ARROW = auto()
     
     
     # Parens and braces

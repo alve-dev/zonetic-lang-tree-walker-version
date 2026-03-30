@@ -17,7 +17,8 @@ class TheNormalizer:
         TokenType.KEYWORD_FLOAT,
         TokenType.KEYWORD_INT,
         TokenType.KEYWORD_STRING,
-        TokenType.KEYWORD_GIVE
+        TokenType.KEYWORD_GIVE,
+        TokenType.KEYWORD_RETURN,
     ]
     
     def __init__(self, tokens: ListTokens, diag: DiagnosticEngine, file_map: FileMap):
@@ -141,5 +142,16 @@ class TheNormalizer:
             
             self.tokens._add(Token(TokenType.EOF, "", Span(span.start+1, span.end+1, self.file_map)))
             self.tokens._replace(self.position, Token(TokenType.SEMICOLON, ';', Span(span.start, span.end+1, self.file_map)))
+        
+        elif semicolon_mode and self.is_valid(self.peek_type(-1)):
+            span = self.tokens._peek(self.position)._span
+            span_err = Span(span.start-1, span.end, self.file_map)
+            self.diag.emit(
+                ErrorCode.E1001,
+                { "mode_tr" : "semicolons",
+                  "used_tr" : "newline" },
+                [span_err],
+                [(span_err, "unexpected newline, this file uses semicolons as statement terminators")]
+            )
             
         return self.tokens

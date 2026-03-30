@@ -1,24 +1,30 @@
 from dataclasses import dataclass
 from typing import Any
+from zonc.ast import BlockExpr, Param
 
 @dataclass
 class RuntimeValue:
     value: Any
+    
+@dataclass
+class RuntimeFunc:
+    block: BlockExpr
+    params: list[Param] | None
 
 class RuntimeScope:
     def __init__(self, parent=None):
-        self.values: dict[str, RuntimeValue] = {}
+        self.values: dict[str, RuntimeValue | RuntimeFunc] = {}
         self.parent = parent
     
-    def get(self, name: str) -> RuntimeValue | None:
+    def get(self, name: str) -> RuntimeValue | RuntimeFunc | None:
         if name in self.values:
             return self.values[name]
         if self.parent:
             return self.parent.get(name)
         return None
     
-    def set(self, name: str, value: RuntimeValue) -> None:
-        self.values[name] = value
+    def set(self, name: str, value: RuntimeValue | RuntimeFunc) -> None:
+        self.values.update({name: value})
     
     def update(self, name: str, value: Any) -> None:
         if name in self.values:

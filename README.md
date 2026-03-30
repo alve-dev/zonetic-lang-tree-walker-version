@@ -12,8 +12,8 @@ A statically typed, expression-oriented language designed for robotics.
 
 ## Status
 
-> `v0.1.0` — first fully functional release.  
-> Tree-walker interpreter complete. Function support coming in `v0.1.1`.
+> `v0.1.1` — Function Update realease.  
+> Comming Soon Struct Update
 
 ## Features
 
@@ -66,4 +66,4 @@ The Zonetic logo is available in both SVG and PNG formats.
 - **PNG** — raster format, works everywhere. Available in [`assets/icons/png/`](assets/icons/png/) in multiple sizes.
 
 ![Language](https://img.shields.io/badge/written%20in-Python-yellow)
-[![Version](https://img.shields.io/badge/version-0--1--0-orange)](changelog.md)
+[![Version](https://img.shields.io/badge/version-0--1--1-orange)](changelog.md)

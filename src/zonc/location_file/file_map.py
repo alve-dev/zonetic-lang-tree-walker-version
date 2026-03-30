@@ -1,10 +1,11 @@
 class FileMap:
     def __init__(self, code: str):
         self.line_starts = [0]
-        for offset, char in enumerate(code):
+        self.code = code
+        for offset, char in enumerate(self.code):
             if char == '\n':
                 self.line_starts.append(offset + 1)
-        self.line_starts.append(len(code))
+        self.line_starts.append(len(self.code))
             
                 
                 

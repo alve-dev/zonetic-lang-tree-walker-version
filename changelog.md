@@ -5,6 +5,88 @@ Versions are listed from newest to oldest.
 
 ---
 
+## v0.1.1 — *The Function Update*
+> Zonetic gets functions — the most significant feature addition since v0.1.0
+
+**Language**
+- `func` keyword and `func form` added — functions are now a first-class construct
+- `return` statement added — exits a function and produces its value
+- `-> type` explicit return type required on every function — including `-> void` for no return
+- `void` type added — exclusively for function return types
+- Parameters require explicit mutability — `mut` or `inmut` always declared
+- Parameters always passed by copy — changes inside never affect the original outside
+- Default parameter values supported — optional at call site
+- `func main` as optional program entry point — if present, execution starts there regardless of declaration order
+- Pre-scan phase added — all functions registered before execution begins, enabling forward references
+- Recursion supported — each call creates an independent `CallFrame` with its own scope
+- Functions see the global scope — variables declared outside any function are visible inside all functions
+
+**Call Expression**
+- Positional parameters — values matched left to right
+- Keyparams — parameters passed by name using `name=value`
+- Mixed calls supported — positional first, keyparams after; once a keyparam is used all following must be keyparams
+- Keyparam terminology adopted — `param` for positional, `keyparam` for named
+
+**Terminology**
+- `parameter` adopted as the single term for both declaration and call contexts
+- `keyparam` introduced for parameters passed by name in a call expression
+- `argument` retired from Zonetic terminology to avoid confusion
+
+**New Parser Errors**
+- `E2013` — missing function name after `func`
+- `E2014` — missing `(` after function name
+- `E2015` — missing `=` after keyparam name in call
+- `E2016` — missing `mut` or `inmut` to start a parameter
+- `E2017` — missing parameter name after mutability keyword
+- `E2018` — `void` used in invalid context
+- `E2019` — invalid type in parameter declaration
+- `E2020` — missing `:` after parameter name
+- `E2021` — missing `->` after parameter list
+- `E2022` — invalid return type after `->`
+- `E2023` — keyparam passed more than once in the same call
+- `E2024` — positional parameter found after a keyparam
+- `E2025` — missing `,` or `)` after parameter (replaces E2015 for unclosed parameter lists)
+- `E2026` — `return` found outside any block expr
+
+**New Lexer Errors**
+- `E0008` — malformed identifier starting with a digit
+
+**New Semantic Errors**
+- `E3013` — Existing function name being used for a new function
+- `E3014` — `return` found in some block expr but not in function context
+- `E3015` — The return type of the expression that has a `return` found in a function does not match the return type of that function.
+- `E3016` — A value(`inmut`) is initialized in a loop when the value is not in the scope of the loop but at least one above it.
+- `E3017` — An attempt is being made to declare a function within a function.
+- `E3018` — `give` is used in a block that is not valid for expressions, for example: `func`
+- `E3019` — semantic detects that there is no `return` in all possible paths (this only applies to functions that do not `return` `void`)
+- `E3020` — It's called a non-existent function
+- `E3021` — Parameters are added to a function call that the function does not need (if it has zero declared parameters).
+- `E3022` — Parameters are being passed that do not match the declared parameters of the function.
+- `E3023` — A keyparam is passed with the name of a parameter not declared in the function.
+- `E3024` — Passing a value twice to a function parameter causes a collision; only one value can be passed per parameter.
+- `E3025` — It was necessary to pass parameters in the call that the function expects
+- `E3026` — A function call that returns `void` is used as an expression
+
+**New Semantic Warnings**
+- `W3005` — unreachable code below `return`
+- `W3006` — unreachable code below `continue` or `break`
+
+**New Runtime Errors**
+- `E4002` — Stack Overflow
+
+**Zon Std Lib Mininum**
+- `print` print string on screen
+- `readInt` — takes a string as an argument and returns a int
+- `readFloat` — takes a string as an argument and returns a float
+- `readString` — takes a string as an argument and returns a string
+
+---
+
+> **Coming next — v0.1.2: The Struct Update**  
+> Basic structs without methods, field declaration and access, and the first modules of the Zonetic standard library for the tree-walker version.
+
+---
+
 ## v0.1.0 — *The First Release*
 > Tree-walker interpreter complete — first fully functional version of Zonetic
 

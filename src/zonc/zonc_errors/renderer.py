@@ -35,29 +35,34 @@ class DiagnosticRenderer:
                 cleaned_lines.append((" " * (9 + num_line)) + content.lstrip())
                 
         return "\n".join(cleaned_lines)
+
+    
+    def firm_call_clean(self, firm: str):
+        new_firm = []
+        for char in firm:
+            if not char.isspace():
+                new_firm.append(char)
+        return "".join(new_firm)
     
     
-    def render(self, diag: Diagnostic, is_repeated: bool) -> str:
-        err_def = diag.error_definition
-        args = diag.args
-        span_codes: list[Span] = diag.span_code
-        span_error = diag.span_errors
-        name_file  = diag.name_file
-        msg_rendered = []
+    def format_traceback(self, stack: list, msg_rendered: list[str]):
+        msg_rendered.append("Call Path:\n")
+        msg_rendered.append(f" {self.firm_call_clean(stack[0].firm)}\n └─>")
+        msg_rendered.append(f" {self.firm_call_clean(stack[1].firm)}\n     └─>")
+        msg_rendered.append(f" {self.firm_call_clean(stack[2].firm)}\n         └─>")
+        msg_rendered.append(f" {self.firm_call_clean(stack[3].firm)}\n             └─>")
+        msg_rendered.append(f" {self.firm_call_clean(stack[4].firm)}\n                 └─>")
+        msg_rendered.append(f" [ ... {stack[-1].depth - 4} identical calls hidden ... ]\n                     └─>")
+        msg_rendered.append(f" {self.firm_call_clean(stack[-1].firm)}  ← crash happened here")
         
-        # Formateo de argumentos
-        if not args is None:
-            msg = err_def.message.format_map(args)
-            
-        else:
-            msg = err_def.message
+    def format_span_message(
+        self,
+        span_codes: list[Span],
+        msg_rendered: list[str],
+        span_error: list[tuple[Span, str]],
+        args: dict[str, str]
         
-        # Header de error
-        if err_def.severity == Severity.ERROR:
-            msg_rendered.append(f"error[{err_def.error_code.name}]: {msg}\n--> {name_file}:{span_error[0][0].line_start}:{span_error[0][0].column_start}\n")
-        else:
-            msg_rendered.append(f"warning[{err_def.error_code.name}]: {msg}\n--> {name_file}:{span_error[0][0].line_end}:{span_error[0][0].column_end}\n")
-        
+    ) -> int:
         num_lines = []
         for i in range(len(span_codes)):
             num_lines.append(span_codes[i].line_end)
@@ -87,7 +92,7 @@ class DiagnosticRenderer:
             elif len(lines) <= 6:
                 count = 0
                 for line in lines:
-                    msg_rendered.append(f"{span_codes[i].line_start+count} {' ' * (size_line - (len(str(span_codes[i].line_start))))}| {line}\n")
+                    msg_rendered.append(f"{span_codes[i].line_start+count} {' ' * (size_line - (len(str(span_codes[i].line_start+count))))}| {line}\n")
                     count += 1
                     
                 paddings = " " * (span_error[i][0].column_start)
@@ -100,7 +105,7 @@ class DiagnosticRenderer:
             else:
                 count = 0
                 for line in lines:
-                    msg_rendered.append(f"{span_codes[i].line_start+count} {' ' * (size_line - len(str(span_codes[i].line_start)))}| {line}\n")
+                    msg_rendered.append(f"{span_codes[i].line_start+count} {' ' * (size_line - len(str(span_codes[i].line_start+count)))}| {line}\n")
                     
                     if count == 2:
                         break
@@ -118,15 +123,69 @@ class DiagnosticRenderer:
             
             if i != len(span_codes)-1:
                 msg_rendered.append(f"\n{space_line} |\n{space_line} ...|\n{space_line} |\n")
+
+        return " " * size_line
+        
+        
+    def format_note_and_zonny(self, msg_rendered: list[str], space_line: str, err_def, args: dict[str, str]):
+        msg_rendered.append(f"\n{space_line} |\n")
+        if args is None:
+            msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note, len(space_line))}\n\n")
+            msg_rendered.append(f"{err_def.zonny}")
+        else:
+            msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note.format_map(args), len(space_line))}\n\n")
+            msg_rendered.append(f"{err_def.zonny.format_map(args)}")
+       
+    
+    def render(self, diag: Diagnostic, is_repeated: bool) -> str:
+        err_def = diag.error_definition
+        args = diag.args
+        span_error = diag.span_errors
+        name_file  = diag.name_file
+        msg_rendered = []
+        
+        # Formateo de argumentos
+        if not args is None:
+            msg = err_def.message.format_map(args)
             
-        if not is_repeated:
-            msg_rendered.append(f"\n{space_line} |\n")
-            if args is None:
-                msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note, size_line)}\n\n")
-                msg_rendered.append(f"{err_def.zonny}")
-            else:
-                msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note.format_map(args), size_line)}\n\n")
-                msg_rendered.append(f"{err_def.zonny.format_map(args)}")
+        else:
+            msg = err_def.message
+        
+        # Header de error
+        if err_def.severity == Severity.ERROR:
+            msg_rendered.append(f"error[{err_def.error_code.name}]: {msg}\n")
+        else:
+            msg_rendered.append(f"warning[{err_def.error_code.name}]: {msg}\n")
+            
+        
+        
+        if diag.traceback:
+            msg_rendered.append(f"--> {name_file}\n")
+            self.format_traceback(diag.call_stack, msg_rendered)
+            
+            self.format_note_and_zonny(
+                msg_rendered,
+                0,
+                err_def,
+                args
+            )
+
+        else:
+            msg_rendered.append(f"--> {name_file}:{span_error[0][0].line_start}:{span_error[0][0].column_start}\n")
+            space_line = self.format_span_message(
+                diag.span_code,
+                msg_rendered,
+                diag.span_errors,
+                args
+            )
+            
+            if not is_repeated:
+                self.format_note_and_zonny(
+                    msg_rendered,
+                    space_line,
+                    err_def,
+                    args
+                )
                 
                 
         return "".join(msg_rendered)

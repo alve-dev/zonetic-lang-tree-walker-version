@@ -11,6 +11,11 @@ class Span:
             self.column_end += 1
         else:
             self.line_end, self.column_end = self.line_start, self.column_start
+            
+        self.file_map = file_map
+        
+    def to_string(self) -> str:
+        return self.file_map.code[self.start : self.end]
         
         
     

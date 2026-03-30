@@ -12,13 +12,15 @@ from .stmt.assignment_stmt import AssignmentStmt
 from .stmt.break_stmt import BreakStmt
 from .stmt.continue_stmt import ContinueStmt
 from .stmt.declaration_stmt import DeclarationStmt
-from .stmt.print_stmt import PrintStmt
 from .stmt.node_stmt import NodeStmt
 from .program import Program
 from .types import ZonType
 from .operators import Operator
 from .error_node import ErrorNode
-from .expr.input_expr import InputExpr
+from .param import Param
+from .stmt.func_form import FuncForm
+from .stmt.return_stmt import ReturnStmt
+from .expr.call_func import CallFunc
 
 __all__ = [
     "Node",
@@ -38,13 +40,15 @@ __all__ = [
     "BreakStmt",
     "ContinueStmt",
     "DeclarationStmt",
-    "PrintStmt",
     "Program",
     "Operator",
     "LiteralNode",
     "ErrorNode",
     "GiveStmt",
-    "InputExpr",
     "NodeExpr",
-    "NodeStmt"
+    "NodeStmt",
+    "Param",
+    "FuncForm",
+    "ReturnStmt",
+    "CallFunc",
 ]

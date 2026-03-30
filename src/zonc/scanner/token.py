@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from zonc.location_file import Span
 from .tokentype import TokenType
 
-
-
 @dataclass
 class Token:
     _type: TokenType

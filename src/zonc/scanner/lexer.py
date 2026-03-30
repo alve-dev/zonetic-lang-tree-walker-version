@@ -24,11 +24,12 @@ class Lexer:
         "and": TokenType.GATE_AND,
         "or": TokenType.GATE_OR,
         "not": TokenType.GATE_NOT,
-        "print": TokenType.KEYWORD_PRINT,
         "true" : TokenType.LITERAL_TRUE,
         "false" : TokenType.LITERAL_FALSE,
         "give" : TokenType.KEYWORD_GIVE,
-        "input" : TokenType.KEYWORD_INPUT
+        "func" : TokenType.KEYWORD_FUNC,
+        "void" : TokenType.KEYWORD_VOID,
+        "return" : TokenType.KEYWORD_RETURN
     }
         
      
@@ -46,6 +47,10 @@ class Lexer:
     
     
     def _advance(self, step: int):
+        if self._position + step > self._code_len:
+            self._position = self._code_len
+            return
+        
         self._position += step
     
     
@@ -127,8 +132,18 @@ class Lexer:
                         ErrorCode.E0002,
                         None,
                         [Span(start_position, self._position-1, self._file_map)],
-                        [(Span(self._position-2, self._position-1, self._file_map), "|-` was expected here to close the comment")]
+                        [(Span(self._position-1, self._position, self._file_map), "|-` was expected here to close the comment")]
                     )
+            
+            case '>':
+                self._tokens._add(
+                    Token(
+                        TokenType.ARROW,
+                        "->",
+                        self._generic_span(2)
+                    )
+                )
+                self._advance(2)
             
             case _:
                 self._match_next(
@@ -342,14 +357,17 @@ class Lexer:
         is_error = False
         
         while not self._is_end():
-            
             if self._peek(0).isdigit():
                 self._advance(1)
             
             elif self._peek(0) == '.' and self._peek(1).isdigit():
                 if is_float:
                     if not is_error:
-                        span = Span(self._position, self._position + 2, self._file_map)
+                        self._advance(1)
+                        while (self._peek(0).isdigit() or self._peek(0) == '.') and not(self._is_end()):
+                            self._advance(1)
+                
+                        span = Span(start_position, self._position, self._file_map)
                         self._diagnostic.emit(
                             ErrorCode.E0005,
                             None,
@@ -362,6 +380,22 @@ class Lexer:
                     is_float = True     
                     
                 self._advance(2)
+            
+            elif self._peek(0).isalpha() or self._peek(0) == '_':
+                self._advance(1)
+                while self._peek(0).isalnum() or self._peek(0) == '_':
+                    self._advance(1)
+                
+                token = self._code[start_position : self._position]
+                span = Span(start_position, self._position, self._file_map)
+                
+                self._diagnostic.emit(
+                    ErrorCode.E0006,
+                    { "token" : token},
+                    [span],
+                    [(span, "`{token}` starts with a digit, which is not allowed for identifiers")]
+                )
+                is_error = True
             
             else:
                 break
@@ -671,7 +705,7 @@ class Lexer:
         self._tokens._add(
             Token(
                 TokenType.EOF,
-                "",
+                "EOF",
                 Span(self._code_len, self._code_len, self._file_map)
                 )
             )

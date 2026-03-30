@@ -12,6 +12,8 @@ class DiagnosticEngine:
         ErrorCode.E0003 : 0,
         ErrorCode.E0004 : 0,
         ErrorCode.E0005 : 0,
+        ErrorCode.E0006 : 0,
+        
         ErrorCode.W0001 : 0,
         
         ErrorCode.E1001 : 0,
@@ -29,6 +31,21 @@ class DiagnosticEngine:
         ErrorCode.E2010 : 0,
         ErrorCode.E2011 : 0,
         ErrorCode.E2012 : 0,
+        ErrorCode.E2013 : 0,
+        ErrorCode.E2014 : 0,
+        ErrorCode.E2015 : 0,
+        ErrorCode.E2016 : 0,
+        ErrorCode.E2017 : 0,
+        ErrorCode.E2018 : 0,
+        ErrorCode.E2019 : 0,
+        ErrorCode.E2020 : 0,
+        ErrorCode.E2021 : 0,
+        ErrorCode.E2022 : 0,
+        ErrorCode.E2023 : 0,
+        ErrorCode.E2024 : 0,
+        ErrorCode.E2025 : 0,
+        ErrorCode.E2026 : 0,
+        
         ErrorCode.W2001 : 0,
         
         ErrorCode.E3001 : 0,
@@ -43,13 +60,30 @@ class DiagnosticEngine:
         ErrorCode.E3010 : 0,
         ErrorCode.E3011 : 0,
         ErrorCode.E3012 : 0,
+        ErrorCode.E3013 : 0,
+        ErrorCode.E3014 : 0,
+        ErrorCode.E3015 : 0,
+        ErrorCode.E3016 : 0,
+        ErrorCode.E3017 : 0,
+        ErrorCode.E3018 : 0,
+        ErrorCode.E3019 : 0,
+        ErrorCode.E3020 : 0,
+        ErrorCode.E3021 : 0,
+        ErrorCode.E3022 : 0,
+        ErrorCode.E3023 : 0,
+        ErrorCode.E3024 : 0,
+        ErrorCode.E3025 : 0,
+        ErrorCode.E3026 : 0,
         
         ErrorCode.W3001 : 0,
         ErrorCode.W3002 : 0,
         ErrorCode.W3003 : 0,
         ErrorCode.W3004 : 0,
+        ErrorCode.W3005 : 0,
+        ErrorCode.W3006 : 0,
         
         ErrorCode.E4001: 0,
+        ErrorCode.E4002: 0,
     }
 
     
@@ -65,20 +99,38 @@ class DiagnosticEngine:
         self,
         error_code: ErrorCode,
         args: dict[str, str] | None,
-        span_code: list[Span],
-        span_error: list[tuple[Span, str] | None],
+        span_code: list[Span] | None,
+        span_error: list[tuple[Span, str]] | None,
+        traceback: bool = False,
+        call_stack: list | None = None
     ) -> None:
         if error_code in ERROR_REGISTRY:
             err_def = ERROR_REGISTRY[error_code]
-            self.errors.append(
-                Diagnostic(
-                    err_def,
-                    args,
-                    span_code,
-                    span_error,
-                    self.name_file,
+            if traceback:
+                self.errors.append(
+                    Diagnostic(
+                        err_def,
+                        args,
+                        None,
+                        span_error,
+                        True,
+                        call_stack,
+                        self.name_file
+                    )
                 )
-            )
+            
+            else:
+                self.errors.append(
+                    Diagnostic(
+                        err_def,
+                        args,
+                        span_code,
+                        span_error,
+                        False,
+                        None,
+                        self.name_file,
+                    )
+                )
             
             if err_def.severity == Severity.ERROR:
                 self.count_errors += 1
@@ -104,7 +156,7 @@ class DiagnosticEngine:
         count_err = 0
         count_warn = 0
         
-        self.errors.sort(key=lambda e: e.span_code[0].start)
+        self.errors.sort(key=lambda e: e.span_errors[0][0].start)
         
         for diag in self.errors:
             self.ERROR_OCCURRENCE[diag.error_definition.error_code] += 1
@@ -124,7 +176,7 @@ class DiagnosticEngine:
                 count_warn += 1
             
             if count_err + count_warn == 10:
-                print(f"... and {self.count_errors - count_err} more errors, plus {self.count_warnings - count_warn} more warnings; resolve the ones above to see the remaining ones.")
+                print(f"... and {self.count_errors - count_err} more errors, plus {self.count_warnings - count_warn} more warnings; I recommend resolving errors from the top down, sometimes there are cascading errors.")
                 break
             
 

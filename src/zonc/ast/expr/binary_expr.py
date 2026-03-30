@@ -14,8 +14,4 @@ class BinaryExpr(NodeExpr):
         self.operator = operator
         self.right = right
         self.span = span
-        
-    
-    def __repr__(self):
-        return f"{__class__.__name__}(left={self.left}, operator={self.operator}, right={self.right})"
     

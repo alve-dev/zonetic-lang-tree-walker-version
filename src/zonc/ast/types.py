@@ -5,4 +5,5 @@ class ZonType(Enum):
     FLOAT = auto()
     BOOL = auto()
     STRING = auto()
+    VOID = auto()
     UNKNOWN = auto()
