@@ -33,12 +33,15 @@ class Parser:
         TokenType.OPERATOR_POW : Operator.POW
     }
     
+    LIST_TYPE = {}
+
     def __init__(self, tokens: ListTokens, diag: DiagnosticEngine, file_map: FileMap) -> None:
         self.tokens = tokens
         self.position = 0
         self.length_list = self.tokens._len()
         self.diag = diag
         self.file_map = file_map
+        self.type_enum = 6
 
     def at_end(self) -> bool:
         return self.tokens._peek(self.position)._type == TokenType.EOF
@@ -62,7 +65,7 @@ class Parser:
                     TokenType.KEYWORD_MUT, TokenType.KEYWORD_INMUT, TokenType.KEYWORD_IF,
                     TokenType.KEYWORD_WHILE, TokenType.KEYWORD_INFINITY, TokenType.LITERAL_IDENT,
                     TokenType.KEYWORD_FUNC, TokenType.KEYWORD_RETURN, TokenType.KEYWORD_GIVE,
-                    TokenType.KEYWORD_CONTINUE, TokenType.KEYWORD_BREAK
+                    TokenType.KEYWORD_CONTINUE, TokenType.KEYWORD_BREAK, TokenType.KEYWORD_STRUCT
                 ): return
                 elif block and self.check(TokenType.RBRACE): return
                 else: self.advance()
@@ -79,19 +82,18 @@ class Parser:
             if self.check(type): return True
         return False
         
-    
     def _add_node_to_list(self, stmt_list: list[Node], node: Union[Node, list[Node], ErrorNode]):
         if isinstance(node, list):
             stmt_list.extend(n for n in node if not isinstance(n, ErrorNode))
         elif not isinstance(node, ErrorNode):
             stmt_list.append(node)
             
-    def _consume_block(self, scope: Enviroment, expects_value: bool, start: int, block: bool, aux_r: str = '{') -> BlockExpr | ErrorNode:
+    def _consume_block(self, scope: Enviroment, expects_value: bool, block: bool, aux_r: str = '{') -> BlockExpr | ErrorNode:
         token = self.tokens._peek(self.position)
         if token._type != TokenType.LBRACE:
             self.diag.emit(
                 ErrorCode.E2009, { "aux_r" : aux_r, "token": token._value},
-                [Span(start, token._span.end, self.file_map)],
+                [Span(token._span.start, token._span.end, self.file_map)],
                 [(token._span, "`{aux_r}` was expected here to open the block")]
             )
             self.synchronize(block, [TokenType.LBRACE])
@@ -141,9 +143,14 @@ class Parser:
         elif self.check(TokenType.LITERAL_IDENT):
             token = self.tokens._peek(self.position)
             self.advance()
+            
             if self.check(TokenType.LPAREN):
                 self.advance()
                 return self.parse_call_func(token, token._span.start, scope, block)
+            
+            elif self.check(TokenType.DOT):
+                return self.parse_assignment_field(scope, token, block)
+            
             return self.parse_assignment(scope, token._value, token._span, token._span.start, block)
             
         elif self.check(TokenType.LBRACE):
@@ -217,6 +224,11 @@ class Parser:
             
             return ReturnStmt(value, span)
         
+        elif self.check(TokenType.KEYWORD_STRUCT):
+            token = self.tokens._peek(self.position)
+            self.advance()
+            return self.parse_struct(token._span.start, scope, block)
+    
         else:
             token_err = self.tokens._peek(self.position)
             self.diag.emit(ErrorCode.E2010, { "token" : token_err._value }, [token_err._span], [(token_err._span, "this is not a valid way to start a statement")])
@@ -266,25 +278,29 @@ class Parser:
                 current_span = zon_type._span
                        
                 match zon_type._type:
-                    case TokenType.KEYWORD_INT: var_type = ZonType.INT
-                    case TokenType.KEYWORD_FLOAT: var_type = ZonType.FLOAT
-                    case TokenType.KEYWORD_BOOL: var_type = ZonType.BOOL
-                    case TokenType.KEYWORD_STRING: var_type = ZonType.STRING
+                    case TokenType.KEYWORD_INT: var_type = ZonType(1, "int")
+                    case TokenType.KEYWORD_FLOAT: var_type = ZonType(2, "float")
+                    case TokenType.KEYWORD_BOOL: var_type = ZonType(3, "bool")
+                    case TokenType.KEYWORD_STRING: var_type = ZonType(4, "string")
                     case TokenType.KEYWORD_VOID:
                         self.diag.emit(ErrorCode.E2018, None, [zon_type._span], [(zon_type._span, "`void` cannot be used as a type here")])
                         self.synchronize(block)
                         return ErrorNode(Span(0, 0, self.file_map))
                     case _:
-                        span_end = self.get_error_span(zon_type)
-                        self.diag.emit(ErrorCode.E2002, { "type" : zon_type._value }, [Span(start, span_end.end, self.file_map)], [(span_end, "is not a valid type in Zonetic")])
-                        self.advance()
-                        self.synchronize(block)
-                        return ErrorNode(Span(0, 0, self.file_map))
+                        if zon_type._value in self.LIST_TYPE:
+                            var_type = self.LIST_TYPE[zon_type._value]
+
+                        else:
+                            span_end = self.get_error_span(zon_type)
+                            self.diag.emit(ErrorCode.E2002, { "type" : zon_type._value }, [Span(start, span_end.end, self.file_map)], [(span_end, "is not a valid type in Zonetic")])
+                            self.advance()
+                            self.synchronize(block)
+                            return ErrorNode(Span(0, 0, self.file_map))
                 
                 end_offset = current_span.end
                 self.advance()
             else:
-                var_type = ZonType.UNKNOWN
+                var_type = ZonType(0, "UNKNOWN")
                 end_offset = self.tokens._peek(self.position)._span.end
             
             if self.check(TokenType.OPERATOR_ASSIGN):
@@ -300,23 +316,29 @@ class Parser:
             self.synchronize(block)
             return ErrorNode(Span(0, 0, self.file_map))
         
-    def parse_assignment(self, scope: Enviroment, name: str, span_name: Span, start: int, block: bool) -> AssignmentStmt:
+    def parse_assignment(self, scope: Enviroment, name: str, span_name: Span, start: int, block: bool, node_compoust = None) -> AssignmentStmt:
         token = self.tokens._peek(self.position)
         self.advance()
         
         if token._type == TokenType.OPERATOR_ASSIGN:
             expr = self.expression(scope, block)
+            if isinstance(expr, ErrorNode): return expr
             return AssignmentStmt(name, expr, Span(start, expr.span.end, self.file_map), span_name)
             
         elif token._type in self.COMPOUND_TO_OPERATOR:
-            var = VariableExpr(name, Span(token._span.start, token._span.end, self.file_map))
+            var = None
+            if node_compoust is None:
+                var = VariableExpr(name, Span(token._span.start, token._span.end, self.file_map))
+            else:
+                var = node_compoust
+            
             right_expr = self.expression(scope, block)
+            if isinstance(right_expr, ErrorNode): return right_expr
             expr = BinaryExpr(var, self.COMPOUND_TO_OPERATOR[token._type], right_expr, Span(var.span.start, right_expr.span.end, self.file_map))
             return AssignmentStmt(name, expr, Span(start, expr.span.end, self.file_map), span_name)
             
         else:
             span_end = self.get_error_span(token)
-            
             self.diag.emit(ErrorCode.E2006, { "token" : token._value , "name" : name }, [Span(start, span_end.end, self.file_map)], [(span_end, "expected an assignment operator here")])
             self.synchronize(block)
             return ErrorNode(Span(0, 0, self.file_map))
@@ -374,7 +396,7 @@ class Parser:
         len_branch = 1
         
         cond = self.expression(scope_back, block)
-        block_expr = self._consume_block(scope_back, expects_value, start, block)
+        block_expr = self._consume_block(scope_back, expects_value, block)
         if isinstance(block_expr, ErrorNode): return block_expr
         
         if_branch = IfBranch(cond, Span(start, block_expr.span.end, self.file_map), block_expr)
@@ -383,7 +405,7 @@ class Parser:
             token_elif = self.tokens._peek(self.position)
             self.advance()
             cond_elif = self.expression(scope_back, block)
-            block_elif = self._consume_block(scope_back, expects_value, start, block)
+            block_elif = self._consume_block(scope_back, expects_value, block)
             if isinstance(block_elif, ErrorNode): return block_elif
             
             elif_branches.append(IfBranch(cond_elif, Span(token_elif._span.start, block_elif.span.end, self.file_map), block_elif))
@@ -392,7 +414,7 @@ class Parser:
         if self.check(TokenType.KEYWORD_ELSE):
             token_else = self.tokens._peek(self.position)
             self.advance()
-            block_else = self._consume_block(scope_back, expects_value, start, block)
+            block_else = self._consume_block(scope_back, expects_value, block)
             if isinstance(block_else, ErrorNode): return block_else
             
             else_branch = IfBranch(BoolLiteral(1, Span(0, 0, self.file_map)), Span(token_else._span.start, block_else.span.end, self.file_map), block_else)
@@ -407,7 +429,7 @@ class Parser:
     
     def parse_while_form(self, scope_back: Enviroment, start: int, infinity: bool, block: bool) -> WhileForm:
         cond = BoolLiteral(1, Span(0, 0, self.file_map)) if infinity else self.expression(scope_back, block)
-        block_expr = self._consume_block(scope_back, False, start, block)
+        block_expr = self._consume_block(scope_back, False, block)
         if isinstance(block_expr, ErrorNode): return block_expr
         
         return WhileForm(cond, block_expr, Span(start, block_expr.span.end, self.file_map))
@@ -468,10 +490,10 @@ class Parser:
                     self.advance()
                     zontype_token = self.tokens._peek(self.position)
                     match zontype_token._type:
-                        case TokenType.KEYWORD_INT: zontype = ZonType.INT
-                        case TokenType.KEYWORD_FLOAT: zontype = ZonType.FLOAT
-                        case TokenType.KEYWORD_BOOL: zontype = ZonType.BOOL
-                        case TokenType.KEYWORD_STRING: zontype = ZonType.STRING
+                        case TokenType.KEYWORD_INT: zontype = ZonType(1, "int")
+                        case TokenType.KEYWORD_FLOAT: zontype = ZonType(2, "float")
+                        case TokenType.KEYWORD_BOOL: zontype = ZonType(3, "bool")
+                        case TokenType.KEYWORD_STRING: zontype = ZonType(4, "string")
                         case TokenType.KEYWORD_VOID:
                             self.diag.emit(ErrorCode.E2018, None, [zontype_token._span], [(zontype_token._span, "`void` cannot be used as a type here")])
                             self.synchronize(block, [TokenType.RPAREN, TokenType.COMMA])
@@ -480,15 +502,19 @@ class Parser:
                                 continue
                             else: break
                         case _:
-                            span = self.get_error_span(zontype_token)
-                            self.diag.emit(ErrorCode.E2019, { "type" : zontype_token._value }, [span], [(span, "`{type}` is not a valid parameter type")])
-                            self.advance()
-                            self.synchronize(block, [TokenType.COMMA, TokenType.RPAREN])
-                            if self.check(TokenType.COMMA):
+                            if zontype_token._value in self.LIST_TYPE:
+                                zontype = self.LIST_TYPE[zontype_token._value]
+                            
+                            else:
+                                span = self.get_error_span(zontype_token)
+                                self.diag.emit(ErrorCode.E2019, { "type" : zontype_token._value }, [span], [(span, "`{type}` is not a valid parameter type")])
                                 self.advance()
-                                continue
-                            elif self.check(TokenType.RPAREN): break
-                            else: return ErrorNode(Span(0, 0, self.file_map))
+                                self.synchronize(block, [TokenType.COMMA, TokenType.RPAREN])
+                                if self.check(TokenType.COMMA):
+                                    self.advance()
+                                    continue
+                                elif self.check(TokenType.RPAREN): break
+                                else: return ErrorNode(Span(0, 0, self.file_map))
                 else:
                     token = self.tokens._peek(self.position)
                     span = self.get_error_span(token)
@@ -533,16 +559,20 @@ class Parser:
             self.advance()
             zontype_token = self.tokens._peek(self.position)
             match zontype_token._type:
-                case TokenType.KEYWORD_INT: return_type = ZonType.INT
-                case TokenType.KEYWORD_FLOAT: return_type = ZonType.FLOAT
-                case TokenType.KEYWORD_BOOL: return_type = ZonType.BOOL
-                case TokenType.KEYWORD_STRING: return_type = ZonType.STRING
-                case TokenType.KEYWORD_VOID: return_type = ZonType.VOID
+                case TokenType.KEYWORD_INT: return_type = ZonType(1, "int")
+                case TokenType.KEYWORD_FLOAT: return_type = ZonType(2, "float")
+                case TokenType.KEYWORD_BOOL: return_type = ZonType(3, "bool")
+                case TokenType.KEYWORD_STRING: return_type = ZonType(4, "string")
+                case TokenType.KEYWORD_VOID: return_type = ZonType(5, "void")
                 case _:
-                    span = self.get_error_span(zontype_token)
-                    self.diag.emit(ErrorCode.E2022, { "token" : zontype_token._value }, [span], [(span, "a valid return type or `void` was expected here")])
-                    self.synchronize(block, [TokenType.LBRACE])
-                    return ErrorNode(Span(0, 0, self.file_map))
+                    if zontype_token._value in self.LIST_TYPE:
+                        return_type = self.LIST_TYPE[zontype_token._value]
+                    
+                    else:
+                        span = self.get_error_span(zontype_token)
+                        self.diag.emit(ErrorCode.E2022, { "token" : zontype_token._value }, [span], [(span, "a valid return type or `void` was expected here")])
+                        self.synchronize(block, [TokenType.LBRACE])
+                        return ErrorNode(Span(0, 0, self.file_map))
         else:
             token = self.tokens._peek(self.position)
             span = self.get_error_span(token)
@@ -552,7 +582,7 @@ class Parser:
         
         self.advance()
         
-        block_expr = self._consume_block(scope, False, start, block)
+        block_expr = self._consume_block(scope, False, block)
         if isinstance(block_expr, ErrorNode): return block_expr
             
         if len(params) < 1: params = None
@@ -585,7 +615,11 @@ class Parser:
                     
             else:
                 if self.check(TokenType.RPAREN): break
-                elif not mode_keyparam: params.append(self.expression(scope, block))
+                elif not mode_keyparam:
+                    expr = self.expression(scope, block)
+                    if isinstance(expr, ErrorNode): return expr
+                    params.append(expr)
+                    
                 else:
                     token = self.tokens._peek(self.position)
                     self.diag.emit(ErrorCode.E2024, None, [token._span], [(token._span, "positional parameter not allowed here, use `name=value` instead")])
@@ -603,7 +637,8 @@ class Parser:
                 token = self.tokens._peek(self.position)
                 span = self.get_error_span(token)
                 self.diag.emit(ErrorCode.E2025, { "token" : token._value }, [span], [(span, "`,` or `)` was expected here")])
-                self.synchronize(block)
+                self.synchronize(block, [TokenType.RPAREN, TokenType.COMMA])
+                self.advance()
                 return ErrorNode(Span(0, 0, self.file_map))
                 
         end = self.tokens._peek(self.position)._span.end
@@ -614,6 +649,210 @@ class Parser:
                     
         return CallFunc(name._value, params, keyparams, Span(start, end, self.file_map), name._span)
 
+    def parse_struct(self, start: int, scope: Enviroment, block: bool) -> StructForm:
+        name: Token 
+        
+        if self.check(TokenType.LITERAL_IDENT):
+            name = self.tokens._peek(self.position)
+            self.advance()
+        else:
+            span_err = self.get_error_span(self.tokens._peek(self.position))
+            self.diag.emit(
+                ErrorCode.E2027, None, [span_err],
+                [(span_err, "missing or invalid name for this definition")]
+            )
+            self.synchronize(block, [TokenType.LBRACE])
+            return ErrorNode(Span(0, 0, self.file_map))
+        
+        if block:
+            self.diag.emit(
+                ErrorCode.E2015, { "name" : name._value }, [name._span],
+                [(name._span, "cannot be defined inside a block")]
+            )
+            self.synchronize(block, [TokenType.SEMICOLON])
+            return ErrorNode(Span(0, 0, self.file_map))
+        
+        block_expr = self._consume_block(scope, False, False)
+        if isinstance(block_expr, ErrorNode): return block_expr
+        
+        self.LIST_TYPE.update({name._value : ZonType(self.type_enum, name._value)})
+        self.type_enum += 1
+        
+        return StructForm(
+            name._value,
+            block_expr,
+            self.LIST_TYPE[name._value],
+            Span(start, block_expr.span.end, self.file_map),
+            name._span
+        )
+    
+    def parse_variable(self, scope: Enviroment, block: bool):
+        var_ident = self.tokens._peek(self.position)
+        self.advance()
+        if self.check(TokenType.LPAREN):
+            self.advance()
+            return self.parse_call_func(var_ident, var_ident._span.start, scope, block)
+        
+        elif self.check(TokenType.LBRACKET):
+            self.advance()
+            mode_key_field = False
+            key_field_assing = {}
+            field_assing = []
+        
+            while not self.check(TokenType.RBRACKET):        
+                if self.check(TokenType.LITERAL_IDENT) and self.tokens._peek(self.position + 1)._type == TokenType.OPERATOR_ASSIGN:
+                    mode_key_field = True
+                    name_field = self.tokens._peek(self.position)
+                    
+                    if name_field._value in key_field_assing:
+                        span_key_field = key_field_assing[name_field._value][1]
+                        self.diag.emit(ErrorCode.E2029, { "field" : name_field._value }, [name_field._span, span_key_field], [(name_field._span, "`{field}` is assigned again here"), (span_key_field, "`{field}` was already assigned here")])
+                        self.synchronize(block, [TokenType.RBRACKET, TokenType.COMMA])
+                        if self.check(TokenType.COMMA):
+                            self.advance()
+                            continue
+                        else: break
+                    
+                    self.advance()
+                    self.advance()
+                    expr_field = self.expression(scope, block)
+                    key_field_assing.update({name_field._value: (expr_field, Span(name_field._span.start, expr_field.span.end, self.file_map), name_field._span)})
+                        
+                else:
+                    if self.check(TokenType.RBRACKET): break
+                    elif not mode_key_field:
+                        expr = self.expression(scope, block)
+                        if isinstance(expr, ErrorNode): return expr
+                        field_assing.append(expr)
+                    else:
+                        token = self.tokens._peek(self.position)
+                        self.diag.emit(ErrorCode.E2030, { "token" : token._value}, [token._span], [(token._span, "positional field assign not allowed here.")])
+                        self.synchronize(block, [TokenType.RBRACKET, TokenType.COMMA])
+                        if self.check(TokenType.COMMA):
+                            self.advance()
+                            continue
+                        else: break
+                
+                if self.check(TokenType.COMMA):
+                    self.advance()
+                    continue
+                elif self.check(TokenType.RBRACKET): break
+                else:
+                    token = self.tokens._peek(self.position)
+                    span = self.get_error_span(token)
+                    self.diag.emit(ErrorCode.E2031, { "token" : token._value }, [span], [(span, "`,` or `]` was expected here")])
+                    self.synchronize(block, [TokenType.RBRACKET, TokenType.COMMA])
+                    self.advance()
+                    return ErrorNode(Span(0, 0, self.file_map))
+                    
+            end = self.tokens._peek(self.position)._span.end
+            self.advance()
+                
+            if len(field_assing) < 1: field_assing = None
+            if len(key_field_assing) < 1: key_field_assing = None
+            
+            return ConstructExpr(
+                var_ident._value,
+                self.LIST_TYPE[var_ident._value] if var_ident._value in self.LIST_TYPE else ZonType(0, "UNKNOWN"),
+                field_assing,
+                key_field_assing,
+                Span(var_ident._span.start, end, self.file_map)
+            ) 
+        
+        elif self.check(TokenType.DOT):
+            return self.parse_field_expr(VariableExpr(var_ident._value, Span(var_ident._span.start, var_ident._span.end, self.file_map)), block)
+            
+        return VariableExpr(var_ident._value, Span(var_ident._span.start, var_ident._span.end, self.file_map))
+    
+    def parse_field_expr(self, name: VariableExpr, block):
+        node = name
+        while self.check(TokenType.DOT):
+            dot_token = self.tokens._peek(self.position)
+            self.advance()
+            if self.check(TokenType.LITERAL_IDENT):
+                token_field = self.tokens._peek(self.position)
+                node = FieldExpr(node, token_field._value, Span(node.span.start, token_field._span.end, self.file_map))
+                self.advance()
+            
+            else:
+                span_err = Span(name.span.start, dot_token._span.end, self.file_map)
+                self.diag.emit(
+                    ErrorCode.E2028, None, [span_err], [(span_err, "expected a field name after the dot `.`")]
+                )
+                self.synchronize(block)
+                return ErrorNode(Span(0, 0, self.file_map))
+            
+        return node
+
+    def parse_assignment_field(self, scope: Enviroment, name: Token, block: bool):
+        node = VariableExpr(name._value, name._span)
+        last_field_token = None
+
+        while self.check(TokenType.DOT):
+            dot_token = self.tokens._peek(self.position)
+            self.advance()
+            
+            if self.check(TokenType.LITERAL_IDENT):
+                # Si ya teníamos un campo anterior, lo empaquetamos en el nodo (Left-Recursive)
+                if last_field_token is not None:
+                    node = FieldExpr(
+                        object_name=node, 
+                        field=last_field_token._value, 
+                        span=Span(node.span.start, last_field_token._span.end, self.file_map)
+                    )
+                
+                # Actualizamos el último campo encontrado
+                last_field_token = self.tokens._peek(self.position)
+                self.advance()
+            
+            else:
+                token = self.tokens._peek(self.position)
+                span_err = Span(token._span.start, dot_token._span.end, self.file_map)
+                self.diag.emit(
+                    ErrorCode.E2028, None, [span_err], [(span_err, "expected a field name after the dot `.`")]
+                )
+                self.synchronize(block)
+                return ErrorNode(Span(0, 0, self.file_map))
+            
+        if self.match_token_type(
+            TokenType.OPERATOR_ASSIGN,
+            TokenType.OPERATOR_PLUS_ASSIGN,
+            TokenType.OPERATOR_MINUS_ASSIGN,
+            TokenType.OPERATOR_MULT_ASSIGN,
+            TokenType.OPERATOR_DIV_ASSIGN,
+            TokenType.OPERATOR_MOD_ASSIGN,
+            TokenType.OPERATOR_POW_ASSIGN
+        ):
+            # Parseamos la asignación utilizando solo el ÚLTIMO campo como target
+            assignment = self.parse_assignment(
+                scope, 
+                last_field_token._value, 
+                last_field_token._span, 
+                last_field_token._span.start, 
+                block,
+                node_compoust = FieldExpr(node, last_field_token._value, last_field_token._span)
+            )
+            
+            if isinstance(assignment, ErrorNode): 
+                return assignment
+            
+            return AssignmentFieldStmt(
+                object_name=node, 
+                field_assign=assignment, 
+                span=Span(node.span.start, assignment.span.end, self.file_map)
+            )
+        
+        else:
+            token_field = self.tokens._peek(self.position)
+            self.diag.emit(
+                ErrorCode.E2032, 
+                { "expr": Span(name._span.start, last_field_token._span.end, self.file_map).to_string(), "field" : last_field_token._value }, 
+                [name._span],
+                [(Span(name._span.start, token_field._span.end, self.file_map), "this expression does nothing on its own")]
+            )
+            self.synchronize(block)
+            return ErrorNode(Span(0, 0, self.file_map))
+    
     def expression(self, scope: Enviroment, block: bool) -> Node:
         return self.logic_or_expr(scope, block)
 
@@ -629,15 +868,22 @@ class Parser:
             self.advance()
             value: Node = self.logic_not_expr(scope, block)
             if isinstance(value, UnaryExpr) and value.operator == Operator.NOT:
-                return value.value # Optimización: elimina doble negación
+                return value.value
             return UnaryExpr(Operator.NOT, value, Span(start, value.span.end, self.file_map))
-        return self.comparison_expr(scope, block)
+        return self.equality_expr(scope, block)
+    
+    def equality_expr(self, scope:Enviroment, block: bool) -> Node:
+        return self._parse_binary_expr(
+            self.comparison_expr,
+            [TokenType.OPERATOR_EQUAL, TokenType.OPERATOR_NOT_EQUAL],
+            scope, block
+        )
     
     def comparison_expr(self, scope: Enviroment, block: bool) -> Node:
         return self._parse_binary_expr(
             self.term_expr,
             [TokenType.OPERATOR_GREATER, TokenType.OPERATOR_LESS, TokenType.OPERATOR_GREATER_EQUAL, 
-             TokenType.OPERATOR_LESS_EQUAL, TokenType.OPERATOR_EQUAL, TokenType.OPERATOR_NOT_EQUAL],
+             TokenType.OPERATOR_LESS_EQUAL],
             scope, block
         )
         
@@ -714,12 +960,7 @@ class Parser:
                 return ErrorNode(Span(0, 0, self.file_map))
         
         elif self.check(TokenType.LITERAL_IDENT):
-            var_ident = self.tokens._peek(self.position)
-            self.advance()
-            if self.check(TokenType.LPAREN):
-                self.advance()
-                return self.parse_call_func(var_ident, var_ident._span.start, scope, block)
-            return VariableExpr(var_ident._value, Span(var_ident._span.start, var_ident._span.end, self.file_map))
+            return self.parse_variable(scope, block)
         
         elif self.check(TokenType.LBRACE):
             start = self.tokens._peek(self.position)._span.start

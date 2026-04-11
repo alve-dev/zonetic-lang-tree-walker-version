@@ -19,6 +19,7 @@ class TheNormalizer:
         TokenType.KEYWORD_STRING,
         TokenType.KEYWORD_GIVE,
         TokenType.KEYWORD_RETURN,
+        TokenType.RBRACKET,
     ]
     
     def __init__(self, tokens: ListTokens, diag: DiagnosticEngine, file_map: FileMap):
@@ -97,18 +98,20 @@ class TheNormalizer:
                     self.tokens._del(self.position)
             
             
-            elif self.peek_type(0) == TokenType.LPAREN:
+            elif self.peek_type(0) == TokenType.LPAREN or self.peek_type(0) == TokenType.LBRACKET:
                 depth += 1
                 self.position += 1
             
-            elif (depth > 0) and (self.peek_type(0) == TokenType.RPAREN):
+            elif (depth > 0) and (self.peek_type(0) == TokenType.RPAREN or self.peek_type(0) == TokenType.RBRACKET):
                 depth -= 1
                 self.position += 1
             
             elif (self.peek_type(0) == TokenType.SEMICOLON):
                 span = self.tokens._peek(self.position)._span
                 
-                if depth > 0 or not self.is_valid(self.peek_type(-1)):
+                if (depth > 0 or not self.is_valid(self.peek_type(-1)) or
+                    self.peek_type(1) == TokenType.LBRACE or self.peek_type(1) == TokenType.LPAREN):
+                    
                     self.diag.emit(
                         ErrorCode.E1002,
                         None,
@@ -134,8 +137,6 @@ class TheNormalizer:
 
             else:
                 self.position += 1
-                        
-        
         
         if not(semicolon_mode) and self.is_valid(self.peek_type(-1)):
             span = self.tokens._peek(self.position)._span

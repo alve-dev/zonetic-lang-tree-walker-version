@@ -62,7 +62,7 @@ class DiagnosticRenderer:
         span_error: list[tuple[Span, str]],
         args: dict[str, str]
         
-    ) -> int:
+    ) -> str:
         num_lines = []
         for i in range(len(span_codes)):
             num_lines.append(span_codes[i].line_end)
@@ -124,16 +124,16 @@ class DiagnosticRenderer:
             if i != len(span_codes)-1:
                 msg_rendered.append(f"\n{space_line} |\n{space_line} ...|\n{space_line} |\n")
 
-        return " " * size_line
+        return size_line
         
         
     def format_note_and_zonny(self, msg_rendered: list[str], space_line: str, err_def, args: dict[str, str]):
-        msg_rendered.append(f"\n{space_line} |\n")
+        msg_rendered.append(f"\n{space_line * " "} |\n")
         if args is None:
-            msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note, len(space_line))}\n\n")
+            msg_rendered.append(f"{space_line * " "} = note: {self.note_clean(err_def.note, space_line)}\n\n")
             msg_rendered.append(f"{err_def.zonny}")
         else:
-            msg_rendered.append(f"{space_line} = note: {self.note_clean(err_def.note.format_map(args), len(space_line))}\n\n")
+            msg_rendered.append(f"{space_line * " "} = note: {self.note_clean(err_def.note.format_map(args), space_line)}\n\n")
             msg_rendered.append(f"{err_def.zonny.format_map(args)}")
        
     

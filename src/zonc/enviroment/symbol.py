@@ -8,12 +8,14 @@ class Symbol:
         mutability: bool,
         zontype: ZonType,
         is_empty: bool,
-        decl_span: Span
+        decl_span: Span,
+        scope_object: 'Enviroment' = None,
     ):
         self.mutability = mutability
         self.zontype = zontype
         self.is_empty = is_empty
         self.decl_span = decl_span
+        self.scope_object = scope_object
         
 class FuncSymbol:
     def __init__(

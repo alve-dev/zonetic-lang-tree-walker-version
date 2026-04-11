@@ -31,7 +31,7 @@ class ErrorCode(Enum):
     E2012 = auto()
     E2013 = auto()
     E2014 = auto()
-    E2015 = auto() #este esta libre el E2015 y descontinuado esperando nuevo uso
+    E2015 = auto()
     E2016 = auto()
     E2017 = auto()
     E2018 = auto()
@@ -43,6 +43,13 @@ class ErrorCode(Enum):
     E2024 = auto()
     E2025 = auto()
     E2026 = auto()
+    E2027 = auto()
+    E2028 = auto()
+    E2029 = auto()
+    E2030 = auto()
+    E2031 = auto()
+    E2032 = auto()
+    E2033 = auto()
     
     # Parser Warnings
     W2001 = auto()
@@ -74,7 +81,27 @@ class ErrorCode(Enum):
     E3024 = auto()
     E3025 = auto()
     E3026 = auto()
-    E3027 = auto() # Proximo error de parametros con mismo nombre de parametros
+    E3027 = auto()
+    E3028 = auto() 
+    E3029 = auto()
+    E3030 = auto()
+    E3031 = auto()
+    E3032 = auto()
+    E3033 = auto()
+    E3034 = auto()
+    E3035 = auto() # Libre
+    E3036 = auto()
+    E3037 = auto()
+    E3038 = auto()
+    E3039 = auto() # Libre
+    E3040 = auto()
+    E3041 = auto()
+    E3042 = auto()
+    E3043 = auto()
+    E3044 = auto()
+    E3045 = auto()
+    E3046 = auto()
+    
     
     # Semantics Warnings
     W3001 = auto()
@@ -89,9 +116,9 @@ class ErrorCode(Enum):
     E4002 = auto()
     
     
-# actualmente hay 54 Zonetic Errors y 8 Zonetic Warnings
+# actualmente hay 89 Zonetic Errors y 8 Zonetic Warnings
 # 6 Errors son de el Lexer y 1 warning son del lexer
 # 2 Errors son del Normalizer
-# 26 Errors son del Parser y 1 warning son del parser
-# 19 Errors son de Semantic y 6 Warnings son del Semantic
-# 1 Error de Runtime 
+# 33 Errors son del Parser y 1 warning son del parser
+# 46 Errors son de Semantic y 6 Warnings son del Semantic
+# 2 Error de Runtime 

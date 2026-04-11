@@ -5,7 +5,7 @@ class VariableExpr(NodeExpr):
     def __init__(
         self,
         name: str,
-        span: Span
+        span: Span | None
     ):
         self.name = name
         self.span = span

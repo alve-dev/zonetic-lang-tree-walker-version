@@ -4,6 +4,67 @@ All notable changes to Zonetic are documented here.
 Versions are listed from newest to oldest.
 
 ---
+## v0.1.2 — *The Struct Update*
+> Zonetic gets structs — data blueprints, objects, and field access
+
+**Language**
+- `struct` keyword and `struct form` added — defines a named blueprint of fields
+- `object` — a clone of a struct, created with a construct expression and stored in a variable
+- `field` — a named slot inside a struct or object, declared with the same syntax as variables
+- `impl` form planned for a future revision — methods not included in this version
+- Struct names follow PascalCase convention and share the namespace with functions
+- Structs registered through pre-scan — reachable from anywhere in the program
+- Structs can only be declared in global scope
+
+**Construct Expression**
+- Syntax: `StructName[]`
+- Fields can be passed by index, by name, or mixed — same rules as function call parameters
+- Fields with default values are optional in the construct
+- Uninitialized fields cannot be read until assigned
+
+**Field Expression**
+- Syntax: `object.field`
+- Supports unlimited nesting — `object.field.field.field`
+- Returns the value and type of the accessed field
+
+**Field Assignment Statement**
+- Syntax: `object.field = expr` or `object.field.field op= expr`
+- Supports standard and compound assignment operators
+- Respects field mutability declared in the struct
+
+**Nee Parser Errors**
+- `E2027` — Expected and identifier after `struct`
+- `E2028` — Invalid field access syntax
+- `E2029` — A field is assigned in the construct expr, but that same field had already been assigned before in the same construct.
+- `E2030` — Positional assignment was found after starting to assign by key in construct expr
+- `E2031` — It was expected, to continue or to terminate the construct expr, something else was found
+- `E2032` — A field expression was used in the statement area, meaning no one expects a returned value
+
+**New Semantic Errors**
+- `E3027` — duplicate parameter name in function declaration
+- `E3028` — complex expressions are used in the declaration of fields
+- `E3029` — An attempt is being made to assign an expr to a field that is not the type of the field.
+- `E3030` — object does not exist in scope
+- `E3031` — variable exists but is not a struct object
+- `E3032` — A field is assigned in a construct by key, but the key does not match any existing field in the struct
+- `E3033` — field assignment target does not exist
+- `E3034` — attempt to assign to an inmut field that already has a value
+- `E3036` — It involves using a field that does not exist in the struct
+- `E3037` — too many values passed to construct
+- `E3038` — struct does not exist
+- `E3040` — field does not exist in struct
+- `E3041` — function name conflicts with existing struct name
+- `E3042` — struct name conflicts with existing function name
+- `E3043` — empty block expression
+- `E3044` — field name shadowing inside struct block
+- `E3045` — assigning a field that does not exist (this in a struct declaration)
+- `E3046` — invalid statement inside struct block
+
+---
+
+> **Coming next — v0.1.3: The CLI Update**
+
+---
 
 ## v0.1.1 — *The Function Update*
 > Zonetic gets functions — the most significant feature addition since v0.1.0
@@ -79,11 +140,6 @@ Versions are listed from newest to oldest.
 - `readInt` — takes a string as an argument and returns a int
 - `readFloat` — takes a string as an argument and returns a float
 - `readString` — takes a string as an argument and returns a string
-
----
-
-> **Coming next — v0.1.2: The Struct Update**  
-> Basic structs without methods, field declaration and access, and the first modules of the Zonetic standard library for the tree-walker version.
 
 ---
 

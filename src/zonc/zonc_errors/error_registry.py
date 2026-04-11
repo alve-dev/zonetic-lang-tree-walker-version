@@ -301,14 +301,15 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
     ErrorCode.E2015 : ErrorDefinition(
       error_code=ErrorCode.E2015,
       severity=Severity.ERROR,
-      message="Expected `=` after `{name}` to complete the keyparam, but found `{token}` instead.",
+      message="`struct` definitions must be at the top-level.",
       note="""
-      In Zonetic, a keyparam must follow the structure `name=value`. 
-      `{name}` was recognized as a parameter name but `=` was never found to complete it.""",
+      In Zonetic, the `struct` keyword is used to define a global blueprint. 
+      To keep the program structure predictable for robotics, types cannot 
+      be hidden inside functions or local scopes.""",
       zonny="""
-      [ ~_~] <("You started a keyparam with '{name}' but forgot the '='. 
-               Keyparams need a value — write '{name}=value' 
-               to complete it.")"""
+      [ ~_~] <("Whoa! You're trying to build a factory inside a room. 
+               `{name}` belongs outside in the open air (global scope) 
+               so everyone can see how it's made. Move the definition to the top!")"""
     ),
     
     ErrorCode.E2016 : ErrorDefinition(
@@ -453,6 +454,95 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                outside of a block it does absolutely nothing.")"""
     ),
     
+    ErrorCode.E2027 : ErrorDefinition(
+      error_code=ErrorCode.E2027,
+      severity=Severity.ERROR,
+      message="Expected an identifier after `struct`.",
+      note="""
+      In Zonetic, every 'struct' requires a unique name to identify the data 
+      structure. This name is used throughout the program to create 
+      instances.""",
+      zonny="""
+      [ o_0] <("You're defining a struct but forgot to give it a name! 
+               How am I supposed to know what this is? 
+               Give it a valid name like 'Motor' or 'Sensor' right after 'struct'.")"""
+    ),
+    
+    ErrorCode.E2028 : ErrorDefinition(
+      error_code=ErrorCode.E2028,
+      severity=Severity.ERROR,
+      message="Invalid field access syntax.",
+      note="""
+      In Zonetic, and in programming in general—just like in natural 
+      languages—grammatical rules are fundamental to understand what 
+      is being said. The dot operator `.` must always be followed by 
+      a valid identifier (a name), not a keyword or a symbol, etc.""",
+      zonny="""
+      [ o_0] <("I'm lost! You put a dot but then said something that 
+               doesn't look like a field name. If you're trying to 
+               access an object's data, make sure to use a proper 
+               name like `object.field`.")"""
+    ),
+    
+    ErrorCode.E2029 : ErrorDefinition(
+      error_code=ErrorCode.E2029,
+      severity=Severity.ERROR,
+      message="Field `{field}` was already assigned in this constructor.",
+      note="""
+      In Zonetic, each field in a constructor can only receive one 
+      initial value. Even if the field is `mut`, you must provide 
+      a single starting value inside the curly braces `{{ }}`.""",
+      zonny="""
+      [ ~_~] <("You're trying to give `{field}` two values at once! 
+               A constructor is for setting the first value, not 
+               starting a fight. Pick one and delete the duplicate.")"""
+    ),
+    
+    ErrorCode.E2030 : ErrorDefinition(
+      error_code=ErrorCode.E2030,
+      severity=Severity.ERROR,
+      message="Positional field assign found after a keyword assign.",
+      note="""
+      In Zonetic, once a keyword (like `field = value`) is used in a 
+      constructor, all following assignments must also use keywords. 
+      Mixing positional and keyword styles is not allowed.""",
+      zonny="""
+      [ ~_~] <("You started naming fields and then just threw '{token}' at me! 
+               Once you name one, you have to name them all. 
+               Use 'field = value' for the rest of this object.")"""
+    ),
+    
+    ErrorCode.E2031 : ErrorDefinition(
+      error_code=ErrorCode.E2031,
+      severity=Severity.ERROR,
+      message="Expected `,` or `]` after field assign, but found `{token}` instead.",
+      note="""
+      In Zonetic, field assignments in a constructor must be separated 
+      by `,` (or a new line) and the entire block must be closed 
+      with `]`. The compiler found something else that doesn't 
+      belong in the object's box.""",
+      zonny="""
+      [ ~_~] <("I just finished an assignment and then `{token}` showed up 
+               out of nowhere. Use `,` to add another field 
+               or `]` to close the constructor!")"""
+    ),
+    
+    ErrorCode.E2032 : ErrorDefinition(
+      error_code=ErrorCode.E2032,
+      severity=Severity.ERROR,
+      message="Field access `{expr}` used as a statement.",
+      note="""
+      In Zonetic, accessing a field is an expression that returns a value. 
+      To be a valid statement, you must either assign it a value (using `=`) 
+      or call a method (using `()`). Standing alone, it doesn't 
+      perform any action.""",
+      zonny="""
+      [ ~_~] <("I see you're looking at '{field}', but what's the plan? 
+               You can't just leave it there! Assign it to something, 
+               change its value, or call a method, but don't 
+               leave it standing alone in the rain.")"""
+    ),
+        
     ErrorCode.E3001 : ErrorDefinition(
       error_code=ErrorCode.E3001,
       severity=Severity.ERROR,
@@ -911,7 +1001,202 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                Replace this with a valid expression or use 
                a function that doesn't return void as an expr.")"""
     ),
-      
+    
+    ErrorCode.E3027 : ErrorDefinition(
+      error_code=ErrorCode.E3027,
+      severity=Severity.ERROR,
+      message="Parameter `{name}` is declared more than once in this function.",
+      note="""In Zonetic, each parameter must have a unique name within a function signature.""",
+      zonny="""[ ~_~] <("`{name}` showed up twice in the parameters. Pick one and remove the other.)"""
+    ),
+    
+    ErrorCode.E3028 : ErrorDefinition(
+      error_code=ErrorCode.E3028,
+      severity=Severity.ERROR,
+      message="This expression cannot be used as a field default value.",
+      note="""
+      In Zonetic, field default values only accept literals, basic operations, and construct expressions.
+      Block expressions, if forms, function calls, etc. Are not allowed.""",
+      zonny="""
+      [ ~_~] <("Field defaults need to be simple and predictable. Use a literal or a construct instead.")"""
+    ),
+    
+    ErrorCode.E3029 : ErrorDefinition(
+      error_code=ErrorCode.E3029,
+      severity=Severity.ERROR,
+      message="Cannot assign `{found}` to field `{field}`, which expects `{expected}`.",
+      note="""
+      In Zonetic, the value passed for a field in a construct expression must match the field's declared type.""",
+      zonny="""
+      [ 0_0] <("`{field}` expects `{expected}` but you gave it `{found}`. Make the types match.")"""
+    ),
+    
+    ErrorCode.E3030 : ErrorDefinition(
+      error_code=ErrorCode.E3030,
+      severity=Severity.ERROR,
+      message="The object `{name}` was not found in the current scope.",
+      note="In Zonetic, you must declare an object before accessing its fields.",
+      zonny="""
+        [ o_0] <("I looked everywhere but I can't find `{name}`. 
+                 Did you forget to declare it or is it hiding 
+                 in another scope? Check your spelling!")"""
+    ),
+    
+    ErrorCode.E3031 : ErrorDefinition(
+      error_code=ErrorCode.E3031,
+      severity=Severity.ERROR,
+      message="`{name}` is not an object and has no accessible fields.",
+      note="The dot `.` operator can only be used on structs or types with an object scope.",
+      zonny="""
+        [ ~_~] <("You're treating `{name}` like a struct, but it's just 
+                 a primitive value. I can't look for fields inside 
+                 something that has no internal scope.")"""
+    ),
+    
+    ErrorCode.E3032 : ErrorDefinition(
+      error_code=ErrorCode.E3032,
+      severity=Severity.ERROR,
+      message="The field `{field}` does not exist in the struct `{struct_name}`.",
+      note="Check the definition of `{struct_name}` to see its available members.",
+      zonny="""
+        [ o_0] <("I successfully entered `{struct_name}`, but `{field}` 
+                 is nowhere to be found. Did you check the blueprint 
+                 of the struct lately?")"""
+    ),
+    
+    ErrorCode.E3033 : ErrorDefinition(
+        error_code=ErrorCode.E3033,
+        severity=Severity.ERROR,
+        message="Cannot assign to `{field}`: this member is not defined in the target object.",
+        note="Assignments require the target field to be explicitly defined in its struct.",
+        zonny="""
+        [ 0_0] <("Destination not found! You're trying to assign a value 
+                 to `{field}`, but that field doesn't exist in the 
+                 final object. Check your struct definition.")"""
+    ),
+    
+    ErrorCode.E3034 : ErrorDefinition(
+        error_code=ErrorCode.E3034,
+        severity=Severity.ERROR,
+        message="Field `{field}` is inmutable and already has a value.",
+        note="""
+        In Zonetic, an `inmut` field with a default value in the struct
+        declaration cannot be overridden in a construct expression.""",
+        zonny="""
+        [ ~_~] <("`{field}` is inmut and already has its value set in the struct.
+                 You can't override it here.")"""
+    ),
+    
+    ErrorCode.E3036 : ErrorDefinition(
+        error_code=ErrorCode.E3036,
+        severity=Severity.ERROR,
+        message="`{field}` is not a field of `{struct_name}`.",
+        note="""
+        In Zonetic, keyparam-style field assignment in a construct requires
+        the field name to exist in the struct declaration.""",
+        zonny="""
+        [ o_0] <("I looked inside `{struct_name}` and `{field}` is not there.
+                 Check the struct declaration and the field name.")"""
+    ),
+    
+    ErrorCode.E3037 : ErrorDefinition(
+        error_code=ErrorCode.E3037,
+        severity=Severity.ERROR,
+        message="Too many values passed to `{struct_name}` — expected at most {max}, got {found}.",
+        note="""
+        In Zonetic, a construct expression cannot receive more values than
+        the number of fields in the struct.""",
+        zonny="""
+        [ 0_0] <("`{struct_name}` only has {max} fields but you passed {found}.
+                 Remove the extra ones.")"""
+    ),
+    
+    ErrorCode.E3038 : ErrorDefinition(
+        error_code=ErrorCode.E3038,
+        severity=Severity.ERROR,
+        message="Struct `{name}` does not exist.",
+        note="""
+        In Zonetic, construct expressions require the struct to be declared before use.
+        Structs are registered through pre-scan and reachable from anywhere in the program.""",
+        zonny="""
+        [ o_0] <("`{name}` is not a struct I know about. Check the name or declare the struct first.")"""
+    ),
+    
+    ErrorCode.E3040 : ErrorDefinition(
+        error_code=ErrorCode.E3040,
+        severity=Severity.ERROR,
+        message="`{field}` is not a field of this struct.",
+        note="""
+        In Zonetic, the final field in a chain access must exist inside the struct of the preceding object.""",
+        zonny="""
+        [ o_0] <("I followed the chain all the way down and `{field}` isn't there at the end. Check the struct.")"""
+    ),
+    
+    ErrorCode.E3041 : ErrorDefinition(
+        error_code=ErrorCode.E3041,
+        severity=Severity.ERROR,
+        message="`{name}` is already declared as a struct and cannot be used as a function name.",
+        note="""
+        In Zonetic, struct names and function names share the same namespace.
+        A function cannot have the same name as an existing struct.""",
+        zonny="""
+        [ ~_~] <("'{name}' is already a struct. Pick a different name for this function — they can't share the same one.")"""
+    ),
+    
+    ErrorCode.E3042 : ErrorDefinition(
+        error_code=ErrorCode.E3042,
+        severity=Severity.ERROR,
+        message="`{name}` is already declared as a function and cannot be used as a struct name.",
+        note="""
+        In Zonetic, struct names and function names share the same namespace.
+        A struct cannot have the same name as an existing function.""",
+        zonny="""
+        [ ~_~] <("`{name}` is already a function. Pick a different name for this struct — they can't share the same one.")"""
+    ),
+        
+    ErrorCode.E3043 : ErrorDefinition(
+        error_code=ErrorCode.E3043,
+        severity=Severity.ERROR,
+        message="This block has no statements.",
+        note="""
+        In Zonetic, a block expression must contain at least one statement to be meaningful.""",
+        zonny="""
+        [ ~_~] <("An empty block does absolutely nothing. Add at least one statement or remove it.")"""
+    ),
+    
+    ErrorCode.E3044 : ErrorDefinition(
+        error_code=ErrorCode.E3044,
+        severity=Severity.ERROR,
+        message="Field `{name}` is already declared in this struct.",
+        note="""
+        In Zonetic, field names inside a struct must be unique. Shadowing between fields is not allowed —
+        it would make the struct impossible to reason about.""",
+        zonny="""
+        [ ~_~] <("`{name}` appears twice in the struct. Every field needs a unique name.")"""
+    ),
+    
+    ErrorCode.E3045 : ErrorDefinition(
+        error_code=ErrorCode.E3045,
+        severity=Severity.ERROR,
+        message="`{name}` is not a declared field of this struct.",
+        note="""
+        In Zonetic, assignment statements inside a struct block can only target fields declared in the same struct.""",
+        zonny="""
+        [ o_0] <("`{name}` doesn't exist as a field here. Declare it first before assigning it a value.")"""
+    ),
+    
+    ErrorCode.E3046 : ErrorDefinition(
+        error_code=ErrorCode.E3046,
+        severity=Severity.ERROR,
+        message="This statement is not allowed inside a struct block.",
+        note="""
+        In Zonetic, a struct block only accepts field declarations and their assignments.
+        Control flow, expressions, and other statements are not permitted.""",
+        zonny="""
+        [ ~_~] <("Structs are for declaring fields, not for running code.
+                 Remove this and keep only field declarations.")"""
+    ),
+    
     ErrorCode.E4001 : ErrorDefinition(
       error_code=ErrorCode.E4001,
       severity=Severity.ERROR,
@@ -940,6 +1225,6 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                Add a base case so it knows when to stop — 
                or raise --max-depth if you're sure 200 isn't enough.")"""
     ),
-    
 }
+
 

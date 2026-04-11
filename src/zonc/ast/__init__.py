@@ -21,6 +21,10 @@ from .param import Param
 from .stmt.func_form import FuncForm
 from .stmt.return_stmt import ReturnStmt
 from .expr.call_func import CallFunc
+from .stmt.struct_form import StructForm
+from .stmt.assignment_field_stmt import AssignmentFieldStmt
+from .expr.field_expr import FieldExpr
+from .expr.construct_expr import ConstructExpr
 
 __all__ = [
     "Node",
@@ -51,4 +55,8 @@ __all__ = [
     "FuncForm",
     "ReturnStmt",
     "CallFunc",
+    "StructForm",
+    "FieldExpr",
+    "AssignmentFieldStmt",
+    "ConstructExpr"
 ]

@@ -1,9 +1,10 @@
 from zonc.ast import *
 from zonc.zonc_errors import DiagnosticEngine, ErrorCode
-from .runtime_scope import RuntimeScope, RuntimeValue, RuntimeFunc
+from .runtime_scope import RuntimeScope, RuntimeValue, RuntimeFunc, RuntimeStruct
 from zonc.location_file import Span
 from dataclasses import dataclass
 from zonc.zonstdlib import *
+from copy import deepcopy
 
 
 @dataclass
@@ -36,7 +37,7 @@ class ZoneticRuntimeError(Exception):
         args: dict[str, str] | None,
         span_code: list[Span] | None,
         span_error: list[tuple[Span, str]] | None,
-        call_stack: list[CallFrame],
+        call_stack: list[CallFrame] | None = None,
         traceback: bool = False,
     ):
         self.error_code = error_code
@@ -81,8 +82,17 @@ class Interpreter:
                         RuntimeFunc(stmt.block_expr, stmt.params)
                     )
                     
+                case StructForm():
+                    scope_struct = RuntimeScope()
+                    for stmt_struct in stmt.block_expr.stmts:
+                        self.exec_stmt(stmt_struct, scope_struct)
+                        
+                    scope.set(
+                        stmt.name,
+                        RuntimeStruct(scope_struct)
+                    )
                     
-    def exec_stmt(self, node: CallFunc, scope: RuntimeScope) -> None:
+    def exec_stmt(self, node: Node, scope: RuntimeScope) -> None:
         match node:
             case DeclarationStmt():
                 scope.set(
@@ -98,6 +108,24 @@ class Interpreter:
                     self.eval_expr(node.value, scope)
                 )
                 
+            case AssignmentFieldStmt():
+                path_struct = []
+                current = node.object_name
+                while not isinstance(current, VariableExpr):
+                    path_struct.insert(0, current.field)
+                    current = current.object_name
+                    
+                first_object = scope.get(current.name)
+                actual_scope = first_object.value.scope_struct
+                
+                for i, p in enumerate(path_struct):
+                    actual_scope = actual_scope.get(p).value.scope_struct
+                    
+                actual_scope.update(
+                    node.field_assign.name,
+                    self.eval_expr(node.field_assign.value, scope)
+                )
+                
             case BreakStmt():
                 raise BreakSignal
             
@@ -105,10 +133,10 @@ class Interpreter:
                 raise ContinueSignal
             
             case GiveStmt():
-                raise GiveSignal(node.value)
+                raise GiveSignal(self.eval_expr(node.value, scope))
             
             case ReturnStmt():
-                raise ReturnSignal(node.value)
+                raise ReturnSignal(self.eval_expr(node.value, scope))
                 
             case BlockExpr():
                 block_scope = RuntimeScope(scope)
@@ -158,9 +186,9 @@ class Interpreter:
             case CallFunc():
                 self.exec_call_func(node, scope)
                 self.current_depth_function -= 1
-                if self.current_depth_function == 1:
-                    self.call_stack.clear
-                    self.current_depth_function -= 1
+                self.call_stack.pop()
+                if self.current_depth_function == 0:
+                    self.call_stack.clear()
              
                 
     def exec_call_func(self, node: CallFunc, scope: RuntimeScope):
@@ -171,24 +199,31 @@ class Interpreter:
             self.current_depth_function,
             node.span.to_string()
         )
-        if self.current_depth_function in [1, 2, 3, 4, 5] or self.current_depth_function == self.MAX_DEPTH:
-            self.call_stack.append(current_call_frame)
+        self.call_stack.append(current_call_frame)
         
         if self.current_depth_function == self.MAX_DEPTH:
+            end_call_stack = []
+            for i, stack in enumerate(self.call_stack):
+                if i < 5:
+                    end_call_stack.append(stack)
+                
+            end_call_stack.append(self.call_stack[-1])
+            
             raise ZoneticRuntimeError(
                 ErrorCode.E4002,
                 { "limit" : self.MAX_DEPTH,
                   "func" : node.name },
                 None,
                 [(node.span, None)],
-                self.call_stack,
+                end_call_stack,
                 True
             )
         
         if node.name in self.NATIVE:
             params_evalued = []
-            for param in node.params:
-                params_evalued.append(self.eval_expr(param, scope))
+            if not node.params is None:
+                for param in node.params:
+                    params_evalued.append(self.eval_expr(param, scope))
             ret = self.NATIVE[node.name].func(params_evalued)
             if ret is None: return
             else: return ret
@@ -222,7 +257,7 @@ class Interpreter:
                 return
                     
             except ReturnSignal as ret:
-                return self.eval_expr(ret.value, current_call_frame.scope)
+                return ret.value
              
                                     
     def eval_expr(self, node: NodeExpr, scope: RuntimeScope) -> any:
@@ -317,7 +352,10 @@ class Interpreter:
                         return -(self.eval_expr(node.value, scope))
                     
             case VariableExpr():
-                return scope.get(node.name).value
+                value = scope.get(node.name).value
+                if isinstance(value, RuntimeStruct): return deepcopy(value)
+                
+                return value
                     
             case BlockExpr():
                 try:
@@ -326,7 +364,7 @@ class Interpreter:
                         self.exec_stmt(stmt, block_scope)
                         
                 except GiveSignal as give:
-                    return self.eval_expr(give.value, block_scope)
+                    return give.value
             
             case IfForm():
                 if self.eval_expr(node.if_branch.cond, scope):
@@ -343,13 +381,49 @@ class Interpreter:
             case CallFunc():
                 value_ret = self.exec_call_func(node, scope)
                 self.current_depth_function -= 1
-                if self.current_depth_function == 1:
-                    self.call_stack.clear
-                    self.current_depth_function -= 1
+                self.call_stack.pop()
+                if self.current_depth_function == 0:
+                    self.call_stack.clear()
                 return value_ret
-                        
-                        
-                        
-                        
-                        
-                        
+            
+            case ConstructExpr():
+                struct_zon = scope.get(node.name_struct)
+                struct_copy = deepcopy(struct_zon)
+                
+                list_fields_decl = []
+                for i, (key, value) in enumerate(struct_zon.scope_struct.values.items()):
+                    list_fields_decl.append(key)
+                
+                if not node.list_assign is None:
+                    for i, field_assign in enumerate(node.list_assign):
+                        struct_copy.scope_struct.update(list_fields_decl[i], self.eval_expr(field_assign, scope))
+                
+                if not node.dict_assign is None:
+                    for key, value in node.dict_assign.items():
+                        struct_copy.scope_struct.update(key, self.eval_expr(value[0], scope))
+                    
+                return struct_copy
+            
+            case FieldExpr():
+                path_struct = []
+                current = node
+                while not isinstance(current, VariableExpr):
+                    path_struct.insert(0, current.field)
+                    current = current.object_name
+                    
+                first_object = scope.get(current.name)
+                actual_scope = first_object.value.scope_struct
+                len_path = len(path_struct)
+                
+                for i, p in enumerate(path_struct):
+                    if i == len_path-1:
+                        return self.eval_expr(
+                            VariableExpr(p, None),
+                            actual_scope
+                        )
+                    
+                    actual_scope = actual_scope.get(p).value.scope_struct
+                    
+            case RuntimeStruct():
+                copy_object = deepcopy(node)
+                return copy_object                

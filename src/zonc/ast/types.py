@@ -1,9 +1,6 @@
-from enum import Enum, auto
+from dataclasses import dataclass
 
-class ZonType(Enum):
-    INT = auto()
-    FLOAT = auto()
-    BOOL = auto()
-    STRING = auto()
-    VOID = auto()
-    UNKNOWN = auto()
+@dataclass
+class ZonType:
+    num: int
+    name: str

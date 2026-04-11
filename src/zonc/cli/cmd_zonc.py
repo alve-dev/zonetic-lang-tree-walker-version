@@ -36,6 +36,10 @@ def cmd_akorn_run(rute_script: str, cmd: str = "run"):
             diagnostic.clear_engine()
             return
         
+        if tokens._len() < 2:
+            print(f"Zonetic Compiler Message: The file `{ruta.name}` has nothing important to parse")
+            return
+        
         # Normalizer
         the_normalizer = TheNormalizer(tokens, diagnostic, file_map)
         tokens = the_normalizer.normalizer()

@@ -1,7 +1,11 @@
 from .cmd_zonc import cmd_akorn_help, cmd_akorn_run, cmd_akorn_version
+import time
 
 def repl():
-    while True:
+    cont = 0
+    while cont != 1:
+        inicio = time.perf_counter()
+        #        Aquí llamas a tu visit_Program(ast)
         cmd = input(">> ")
         
         args = cmd.split(" ")
@@ -42,3 +46,8 @@ def repl():
         
         elif args[0] == "help":
             cmd_akorn_help()
+            
+        fin = time.perf_counter()
+
+        print(f"Zonetic tardó: {fin - inicio:.6f} segundos")
+        cont += 1

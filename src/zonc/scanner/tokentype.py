@@ -25,6 +25,8 @@ class TokenType(Enum):
     KEYWORD_FUNC = auto()
     KEYWORD_RETURN = auto()
     
+    KEYWORD_STRUCT = auto()
+    
     # LOGIC GATES BOOL
     GATE_AND = auto()
     GATE_OR = auto()
@@ -61,6 +63,7 @@ class TokenType(Enum):
     COMMA = auto()
     NEWLINE = auto()
     ARROW = auto()
+    DOT = auto()
     
     
     # Parens and braces
@@ -68,6 +71,8 @@ class TokenType(Enum):
     RPAREN = auto()
     LBRACE = auto()
     RBRACE = auto()
+    LBRACKET = auto()
+    RBRACKET = auto()
     
     
     # Literals

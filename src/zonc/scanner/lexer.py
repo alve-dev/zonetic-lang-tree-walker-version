@@ -29,7 +29,8 @@ class Lexer:
         "give" : TokenType.KEYWORD_GIVE,
         "func" : TokenType.KEYWORD_FUNC,
         "void" : TokenType.KEYWORD_VOID,
-        "return" : TokenType.KEYWORD_RETURN
+        "return" : TokenType.KEYWORD_RETURN,
+        "struct" : TokenType.KEYWORD_STRUCT
     }
         
      
@@ -656,6 +657,36 @@ class Lexer:
                         Token(
                             TokenType.RBRACE,
                             '}',
+                            self._generic_span(1)
+                        )
+                    )
+                    self._advance(1)
+                    
+                case '[':
+                    self._tokens._add(
+                        Token(
+                            TokenType.LBRACKET,
+                            '[',
+                            self._generic_span(1)
+                        )
+                    )
+                    self._advance(1)
+                    
+                case ']':
+                    self._tokens._add(
+                        Token(
+                            TokenType.RBRACKET,
+                            ']',
+                            self._generic_span(1)
+                        )
+                    )
+                    self._advance(1)
+                
+                case '.':
+                    self._tokens._add(
+                        Token(
+                            TokenType.DOT,
+                            '.',
                             self._generic_span(1)
                         )
                     )

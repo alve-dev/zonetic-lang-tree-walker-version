@@ -12,43 +12,65 @@ A statically typed, expression-oriented language designed for robotics.
 
 ## Status
 
-> `v0.1.1` — Function Update realease.  
-> Comming Soon Struct Update
+> `v0.1.2` — Struct Update release.  
+> Coming Soon: CLI Update
 
 ## Features
 
 - Explicit mutability with `mut` / `inmut`
 - Form-based control flow — `if form`, `while form`, `infinity form`
 - Block expressions with `give`
+- Functions with typed parameters, keyparams, and default values
+- Structs with field access, construct expressions, and nested objects
 - Rust-inspired error reporting with spans and Zonny
 - Hybrid statement terminators — `;` or newline
 - Type inference from first assignment
 - Real mutability enforcement
-- 32 errors and 6 warnings across all compiler phases
 
 ## Quick Look
-```rust
-mut counter: int = 0
 
-while counter < 10 {
-    counter += 1
-    if counter == 5 {
-        break
-    }
+```
+-| while form |-
+mut i: int = 0
+while i < 3 {
+    i += 1
 }
 
-inmut result: int = if counter == 5 {
-    give counter * 2
+-| if form |-
+if i == 1 {
+    print("one")
+} elif i == 2 {
+    print("two")
 } else {
-    give 0
+    print("three")
 }
 
-print "Result: ", result
+-| func form |-
+func greet(inmut name: string) -> void {
+    print("Hello, ", name)
+}
+
+greet("Zonetic")
+
+-| struct form |-
+struct Point {
+    mut x: int = 0
+    mut y: int = 0
+}
+
+mut p = Point[3, 7]
+print("x: ", p.x, " y: ", p.y)
+```
+```
+Terminal:
+three
+Hello, Zonetic
+x: 3 y: 7
 ```
 
 ## Documentation
 
-> Full language documentation → [link here](https://github.com/alve-dev/zonetic-official-docs)
+> Full language documentation → [zonetic-official-docs](https://github.com/alve-dev/zonetic-official-docs)
 
 ## Pipeline
 ```
@@ -66,4 +88,4 @@ The Zonetic logo is available in both SVG and PNG formats.
 - **PNG** — raster format, works everywhere. Available in [`assets/icons/png/`](assets/icons/png/) in multiple sizes.
 
 ![Language](https://img.shields.io/badge/written%20in-Python-yellow)
-[![Version](https://img.shields.io/badge/version-0--1--1-orange)](changelog.md)
+[![Version](https://img.shields.io/badge/version-0--1--2-orange)](changelog.md)
