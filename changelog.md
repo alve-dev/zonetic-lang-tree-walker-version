@@ -4,6 +4,49 @@ All notable changes to Zonetic are documented here.
 Versions are listed from newest to oldest.
 
 ---
+## v0.1.3 — *The CLI Update 2.0*
+> Complete environment overhaul with cross-platform distribution and language refinements
+
+**CLI & Distribution**
+- **Unified Entry Point** — The compiler is now globally accessible via the `zon` command.
+- **Linux & Android Integration** — Implementation of `shebang` in `main.py` combined with symbolic links in `$PREFIX/bin` or `/usr/local/bin` and execution permissions.
+- **Windows Portability** — Added `zon.bat` wrapper and environment variable manipulation to enable global PATH access in CMD/PowerShell.
+- **Formal Documentation** — Created comprehensive installation guides in `install_guides/`:
+    - `INSTALL_LINUX.md`
+    - `INSTALL_WINDOWS.md`
+    - `INSTALL_ANDROID.md` (optimized for Termux).
+- **Command Suite Expansion** — New standardized command flags:
+    - `r` / `run`: Execute source files.
+    - `vers`: Display compiler version.
+    - `help`: Command usage guide.
+    - `setpath` / `showpath` / `clrpath`: Internal workspace path management.
+    - `repl`: Interactive mode with `EOF` trigger for multi-line execution.
+    - `setfile`: Streamlined file creation (including directory tree) with an optional immediate run prompt.
+- **CLI Security Layer** — Added dedicated error handling and safety messages specifically for CLI operations, independent from the core language diagnostics.
+
+**Language Refinements**
+- **Numeric Underscore Support** — Added numeric separators for readability (e.g., `1_000_000`).
+    - Implementation is strict: only permitted for thousands separation in integers or the integer part of a float.
+    - Disallowed in decimal parts or as leading/trailing characters.
+- **Initialization Shadowing** — Refined `Initialization Statement` logic.
+    - Shadowing (e.g., `mut x = 10; inmut x = x`) is now valid.
+    - The shadowed variable remains accessible during the initialization of the new variable before being replaced in the scope.
+    - Strict validation remains: standard assignment to an uninitialized variable (shadowing or not) will still trigger a diagnostic.
+
+**New Lexer Errors**
+- `E0007` — Invalid underscore usage (e.g., `100_` or `1_0.0`).
+- `E0008` — Forbidden underscore usage in the decimal part of a float (e.g., `3.12_14`).
+
+**Technical Fixes**
+- **F-String Compatibility** — Refactored internal rendering to support Python 3.11 by removing nested quotes and backslashes in template expressions.
+- **IO Normalization** — Fixed newline stripping issues in Windows environments during file generation.
+
+---
+
+> **Coming next — v0.1.4: The Closure Update**
+
+---
+
 ## v0.1.2 — *The Struct Update*
 > Zonetic gets structs — data blueprints, objects, and field access
 
@@ -59,10 +102,6 @@ Versions are listed from newest to oldest.
 - `E3044` — field name shadowing inside struct block
 - `E3045` — assigning a field that does not exist (this in a struct declaration)
 - `E3046` — invalid statement inside struct block
-
----
-
-> **Coming next — v0.1.3: The CLI Update**
 
 ---
 

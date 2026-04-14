@@ -154,11 +154,12 @@ def cmd_zon_run(rute_script: str = " ", cmd: str = "run", code_source: str = Non
     
    
 def cmd_zon_version():
-    print("[zon info]: Zonetic Programmin Language")
-    print("[ ^_^] <(\"Hi! I'm Zonny. I'm currently running on version 0.1.2 'The Struct Update'.")
-    print("         I’m feeling quite organized today... I guess you could say I finally found some structure in my life!\")")
-
-
+    print("[zon info]: Zonetic Programming Language")
+    print("[ ^_^] <(\"Hi! I'm Zonny. I'm currently running on version 0.1.3 'The CLI Update 2.0'.")
+    print("         I’m everywhere now! You could say things are finally 'CLI-ear' between us...\")")
+    print("         Don't worry, I won't let the global power go to my head!\")")
+          
+         
 def cmd_zon_help(specific_command=None):
     commands = {
         "help":     "Show this help message or info about a specific command.",
@@ -248,16 +249,17 @@ def cmd_zon_set_file(args=None, mode=0):
             print("-- The forge only works with .zon files. Please ensure your path or filename ends with the correct extension.")
             return
 
-        print(f"[zon info]: Writing to '{target_path.name}'. Type 'EOF' or Ctrl+D to save.")
-        
-    if mode == 1:
-        short_eof = ""
-        if os.name == "nt":
-            short_eof = "Ctrl+Z and Enter"
-        else:
-            short_eof = "Ctrl+D"
-            
+    
+    short_eof = ""
+    if os.name == "nt":
+        short_eof = "Ctrl+Z and Enter"
+    else:
+        short_eof = "Ctrl+D"
+    
+    if mode == 1:    
         print(f"[zon info]: Repl Mode. Type 'EOF' or {short_eof} to end.")
+    else:
+        print(f"[zon info]: Writing to '{target_path.name}'. Type 'EOF' or {short_eof} to save.")
     
     lines = []
     try:

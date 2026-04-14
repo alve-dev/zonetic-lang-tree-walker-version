@@ -101,8 +101,7 @@ class Semantic:
         for node in ast.stmts:
             if isinstance(node, StructForm):
                 self.check_struct_form(node)
-
-                    
+   
     def check_ast(self, ast: Program, is_expr: bool) -> None | ZonType:
         scope: Enviroment = ast.scope
         self.pre_scan(ast, scope)
@@ -129,7 +128,7 @@ class Semantic:
         for i, stmt in enumerate(stmts):
             if isinstance(stmt, DeclarationStmt):    
                 self.check_declaration_stmt(stmt, scope)
-                
+            
             elif isinstance(stmt, AssignmentStmt):
                 symbol = scope.get_symbol(stmt.name)
                 
@@ -150,6 +149,35 @@ class Semantic:
                     
                                 symbol.is_empty = True
             
+            elif isinstance(stmt, InitializationStmt):
+                zon_type = self.infer_expr(stmt.assign_stmt.value, scope, name=stmt.assign_stmt.name)
+                scope_object_copy: Enviroment = None
+                if isinstance(zon_type, tuple):
+                    scope_object_copy = zon_type[1]
+                    zon_type = zon_type[0]
+                
+                self.check_declaration_stmt(stmt.decl_stmt, scope)
+                if zon_type.num == 0: return
+                
+                symbol = scope.get_symbol(stmt.decl_stmt.name)
+                if symbol.zontype.num == 0:
+                    symbol.zontype = zon_type
+                    
+                elif symbol.zontype.num != zon_type.num:
+                    err_span = stmt.assign_stmt.value.stmts[stmt.assign_stmt.value.give_address].value.span if isinstance(stmt.assign_stmt.value, BlockExpr) else stmt.assign_stmt.value.span
+                    self.diag.emit(
+                        ErrorCode.E3006,
+                        { "name" : stmt.assign_stmt.name, "expected_type" : symbol.zontype.name, "found_type" : zon_type.name},
+                        [stmt.assign_stmt.span],
+                        [(err_span, "this expression returns `{found_type}`, but `{name}` expects `{expected_type}`")]
+                    )
+                    return
+                
+                symbol.is_empty = False
+                
+                if not scope_object_copy is None:
+                    symbol.scope_object = scope_object_copy
+                    
             elif isinstance(stmt, BlockExpr):
                 block_flow = self.evaluate_statements(stmt.stmts, stmt.scope, span_block=stmt.span, is_expr=False)
                 if block_flow.has_returned:

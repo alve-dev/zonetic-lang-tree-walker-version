@@ -108,6 +108,15 @@ class Interpreter:
                     self.eval_expr(node.value, scope)
                 )
                 
+            case InitializationStmt():
+                val = self.eval_expr(node.assign_stmt.value, scope)
+                scope.set(
+                    node.decl_stmt.name,
+                    RuntimeValue(
+                        val
+                    )
+                )
+            
             case AssignmentFieldStmt():
                 path_struct = []
                 current = node.object_name
