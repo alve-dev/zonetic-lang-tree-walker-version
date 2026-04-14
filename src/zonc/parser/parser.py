@@ -251,8 +251,8 @@ class Parser:
         node = self.parse_single_declaration(mutable, scope, start, block)
         declarations = []
         
-        if isinstance(node, list):
-            if not isinstance(node[0], ErrorNode) and not isinstance(node[1], ErrorNode): declarations.extend(node)
+        if isinstance(node, InitializationStmt):
+            if not isinstance(node.decl_stmt, ErrorNode) and not isinstance(node.assign_stmt, ErrorNode): declarations.append(node)
             else: return node
         elif isinstance(node, ErrorNode): return node
         else: declarations.append(node)
@@ -316,10 +316,13 @@ class Parser:
                 end_offset = self.tokens._peek(self.position)._span.end
             
             if self.check(TokenType.OPERATOR_ASSIGN):
-                return [
-                    DeclarationStmt(var_name, mutable, var_type, ident._span, Span(start, end_offset, self.file_map)),
-                    self.parse_assignment(scope, var_name, ident._span, start, block)
-                ]
+                decl = DeclarationStmt(var_name, mutable, var_type, ident._span, Span(start, end_offset, self.file_map))
+                assing = self.parse_assignment(scope, var_name, ident._span, start, block)
+                return InitializationStmt(
+                    decl,
+                    assing,
+                    Span(decl.span.start, assing.span.end, self.file_map)
+                )
             else:
                 return DeclarationStmt(var_name, mutable, var_type, ident._span, Span(start, end_offset, self.file_map))
         else:

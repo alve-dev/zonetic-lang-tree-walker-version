@@ -8,6 +8,8 @@ class ErrorCode(Enum):
     E0004 = auto()
     E0005 = auto()
     E0006 = auto()
+    E0007 = auto()
+    E0008 = auto()
     
     # Lexer Warnings
     W0001 = auto()

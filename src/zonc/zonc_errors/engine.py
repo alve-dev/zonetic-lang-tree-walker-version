@@ -13,6 +13,8 @@ class DiagnosticEngine:
         ErrorCode.E0004 : 0,
         ErrorCode.E0005 : 0,
         ErrorCode.E0006 : 0,
+        ErrorCode.E0007 : 0,
+        ErrorCode.E0008 : 0,
         
         ErrorCode.W0001 : 0,
         

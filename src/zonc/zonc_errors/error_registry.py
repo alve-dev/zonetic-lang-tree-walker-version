@@ -84,6 +84,34 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
                and put the digits after.")"""
     ),
     
+    ErrorCode.E0007 : ErrorDefinition(
+      error_code=ErrorCode.E0007,
+      severity=Severity.ERROR,
+      message="`{number}` uses `_` in an invalid position.",
+      note="""
+      In Zonetic, `_` is only allowed in integer literals to separate groups of thousands
+      for readability — like `1_000_000`. It must appear between digit groups, never
+      at the start, end, or in irregular positions like `10_0`.""",
+      zonny="""
+      [ ~_~] <("`_` is for making big numbers readable, not for decoration.
+               Use it only to separate thousands — `1_000`, `10_000`, `1_000_000`.
+               If that's not what you meant, just remove it.")"""
+    ),
+    
+    ErrorCode.E0008 : ErrorDefinition(
+      error_code=ErrorCode.E0008,
+      severity=Severity.ERROR,
+      message="`_` is not allowed in the decimal part of a float.",
+      note="""
+      In Zonetic, `_` is only allowed in the integer part of a number to separate
+      thousands — `1_000.5` is valid, but `1_000.3_45` is not. The decimal part
+      must always be written without underscores.""",
+      zonny="""
+      [ o_0] <("The integer part looks fine, but the decimal part has a `_` in it.
+               Keep the underscores before the dot only —
+               write the decimal digits without any separators.")"""
+    ),
+    
     ErrorCode.E1001 : ErrorDefinition(
         error_code=ErrorCode.E1001,
         severity=Severity.ERROR,

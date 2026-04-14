@@ -22,7 +22,7 @@
             "env" : {
                 "PYTHONPATH" : "src"
             },
-            "args" : ["setpath", "programacion/zonetic", "--debug"],
+            "args" : ["repl", "--debug"],
         }
     ]
 }

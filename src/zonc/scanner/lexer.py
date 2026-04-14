@@ -353,15 +353,30 @@ class Lexer:
         
     def _scan_literal_number(self) -> None:
         start_position = self._position
+        numero_completo = [self._peek(0)]
         self._advance(1)
         is_float = False
         is_error = False
         digit_sequence = 0
-        numero_completo = []
+        is_separate = False
         
         while not self._is_end():
             if self._peek(0).isdigit():
-                digit_sequence += 1
+                if digit_sequence > 3:
+                    while self._peek(0).isdigit() or self._peek(0) == '_' and (not self._is_end()):
+                        self._advance(1)
+                            
+                    span_error = Span(start_position, self._position, self._file_map)
+                    self._diagnostic.emit(
+                        ErrorCode.E0007, { "number" : span_error.to_string() }, [span_error],
+                        [(span_error, "`_` is not separating thousands here")]
+                    )
+                    is_error = True
+                    break
+                
+                if is_separate:
+                    digit_sequence += 1
+            
                 numero_completo.append(self._peek(0))
                 self._advance(1)
             
@@ -387,18 +402,32 @@ class Lexer:
                 numero_completo.append(self._peek(0))
                 numero_completo.append(self._peek(1))
                 self._advance(2)
-                
+            
             elif self._peek(0) == '_':
                 if is_float:
-                    #ERROR
-                    pass
-                    
-                else:
-                    digit_sequence = 0
-                    if digit_sequence != 3:
-                        #ERROR
-                        pass
+                    while self._peek(0).isdigit() or self._peek(0) == '_':
+                        self._advance(1)
                         
+                    span_error = Span(start_position, self._position, self._file_map)
+                    self._diagnostic.emit(
+                       ErrorCode.E0008, None, [span_error], [(span_error, "`_` found in decimal part")] 
+                    )
+                    is_error = True
+                    break
+                
+                if is_separate and digit_sequence != 3:
+                    while self._peek(0).isdigit() or self._peek(0) == '_':
+                        self._advance(1)
+                            
+                    span_error = Span(start_position, self._position, self._file_map)
+                    self._diagnostic.emit(
+                        ErrorCode.E0007, { "number" : span_error.to_string() }, [span_error],
+                        [(span_error, "`_` is not separating thousands here")]
+                    )
+                    is_error = True
+                    break
+                
+                is_separate = True
                 self._advance(1)
                 
             elif self._peek(0).isalpha() or self._peek(0) == '_':
@@ -419,8 +448,16 @@ class Lexer:
             
             else:
                 break
+        
+        if self._peek(-1) == '_':
+            span_error = Span(start_position, self._position, self._file_map)
+            self._diagnostic.emit(
+                ErrorCode.E0007, { "number" : span_error.to_string() }, [span_error],
+                [(span_error, "`_` is not separating thousands here")]
+            )
+            is_error = True
             
-        numero = self._code[start_position : self._position]
+        numero = "".join(numero_completo)
         
         if is_error:
             return
@@ -762,3 +799,44 @@ class Lexer:
         
         return self._tokens
 
+
+"""HAcer de ultimo:
+def get_distance(s1, s2):
+    # Si una es mucho más larga que otra, ni lo intentamos
+    if abs(len(s1) - len(s2)) > 2: 
+        return 10 
+    
+    # Creamos una matriz simple (puro minimalismo)
+    if len(s1) < len(s2):
+        return get_distance(s2, s1)
+
+    if not s2:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+    
+    return previous_row[-1]
+
+def suggest_command(user_input, valid_commands):
+    best_match = None
+    min_dist = 3 # Máximo de errores permitidos (typos)
+
+    for cmd in valid_commands:
+        dist = get_distance(user_input, cmd)
+        if dist < min_dist:
+            min_dist = dist
+            best_match = cmd
+    return best_match
+    
+    
+    poner mensaje final con tiempo durado
+
+"""

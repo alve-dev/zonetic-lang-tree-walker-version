@@ -56,6 +56,30 @@ def run_cli():
     elif args[0] == "repl":
         cmd_zon_set_file(mode=1)
         
+    elif args[0] == "tokens":
+        if len(args) < 2:
+            print("[zon error]: No file specified for the tokens command.")
+            print("-- The engine needs a target. Use zon tokens <filename>.zon to start execution.")
+            return
+        
+        cmd_zon_run(args[1], "token")
+        
+    elif args[0] == "ast":
+        if len(args) < 2:
+            print("[zon error]: No file specified for the ast command.")
+            print("-- The engine needs a target. Use zon ast <filename>.zon to start execution.")
+            return
+        
+        cmd_zon_run(args[1], "ast")
+        
+    elif args[0] == "sem":
+        if len(args) < 2:
+            print("[zon error]: No file specified for the semantic command.")
+            print("-- The engine needs a target. Use zon sem <filename>.zon to start execution.")
+            return
+        
+        cmd_zon_run(args[1], "smt")
+        
     else:
         print("[zon error]: Unknown command.")
         print("-- The forge doesn't recognize that instruction. Use zon help to see the available commands.")
