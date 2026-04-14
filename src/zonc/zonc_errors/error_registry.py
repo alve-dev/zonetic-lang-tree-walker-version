@@ -28,7 +28,7 @@ ERROR_REGISTRY: dict[ErrorCode, ErrorDefinition] = {
         error_code=ErrorCode.E0003,
         severity=Severity.ERROR,
         message="I encountered an escape sequence I don't know: `{escape}`.",
-        note=f"Zonetic only supports standard escape sequences like {"\\"}n, {"\\"}t, {"\\"}\, among others.",
+        note=rf"Zonetic only supports standard escape sequences like \n, \t, \, among others.",
         zonny="""
         [ ~_~] <("Is `{escape}` supposed to be some secret robot code? Because 
                  it's not in my manual. Just delete it or use a valid 
