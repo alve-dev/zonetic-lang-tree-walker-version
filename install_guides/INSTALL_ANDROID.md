@@ -6,7 +6,7 @@ Follow these steps to configure the **Zonetic** command-line interface on Androi
 
 Termux is a terminal emulator that provides a Linux environment. **Do not use the Google Play Store version**, as it is outdated.
 
-1.  **Download**: Go to the [Official F-Droid Page](https://f-droid.org).
+1.  **Download**: Go to the [Official F-Droid Page](https://f-droid.org/es/packages/com.termux/).
 2.  **Select Version**: Scroll down to the "Versions" or "Packages" section. Download the latest version available that **DOES NOT** have the "(beta)" tag in its name.
 3.  **Install the APK**:
     *   Once downloaded, tap the file to install.
