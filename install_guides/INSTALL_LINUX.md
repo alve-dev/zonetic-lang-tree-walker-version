@@ -1,46 +1,35 @@
 # Zonetic Installation Guide (Linux)
 
-Follow these steps to configure the Zonetic command-line interface. This process creates a global symbolic link to the compiler source.
+Follow these steps to configure the Zonetic command-line interface. This process uses a specialized installer to set up the environment and the global command.
 
-## 1. Prerequisites
+## 1. Quick Installation
 
-Zonetic requires Python 3.10 or higher. Verify your environment:
-
-```bash
-python3 --version
-```
-
-## 2. Clone the Repository
-
-Clone the source code into a specific directory named 'zonetic':
+Zonetic features an automated installer that handles dependencies and configures the system for you. Run the following command:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/zonetic-lang-tree-walker-version.git zonetic
+curl -sSL https://raw.githubusercontent.com/alve-dev/zonetic-lang-tree-walker-version/refs/heads/main/install.sh | bash
 ```
->[!CAUTION]
->**WARNING**: Do not modify, move, or delete files inside the `zonetic/` directory after installation. Doing so will break the compiler and the global command.
 
-## 3. Navigate and Set Permissions
+> [!TIP]
+> **Full Installation**: If you want to download the entire repository (including logos and examples), use this command instead:
+> ```bash
+> curl -sSL https://raw.githubusercontent.com/alve-dev/zonetic-lang-tree-walker-version/refs/heads/main/install_comple.sh | bash
+> ```
 
-Move to the compiler source directory and grant execution permissions to the entry point:
-
-```bash
-cd zonetic/src/zonc
-chmod +x main.py
-```
-## 4. Create the System Link
-
-Create a symbolic link in `/usr/local/bin` to make `zon` a global command:
-
-```bash
-sudo ln -s $(pwd)/main.py /usr/local/bin/zon
-```
-## 5. Verify Installation
+## 2. Verify Installation
 
 Test the installation by checking the version and Zonny's status:
 
 ```bash
 zon vers
+```
+
+## 3. Keep Zonetic Updated
+
+You can sync your local compiler with the latest stable version from GitHub without reinstalling. The system will check for the [STABLE] flag before updating:
+
+```bash
+zon update
 ```
 
 ---
@@ -53,26 +42,18 @@ If the terminal does not recognize the command immediately, refresh your shell c
 source ~/.bashrc
 ```
 
-**Broken Link**
-
-The symbolic link depends on the absolute path of the source file. If you move the zonetic folder, you must recreate the link:
-```bash
-sudo rm /usr/local/bin/zon
-cd new/path/to/zonetic/src/zonc
-sudo ln -s $(pwd)/main.py /usr/local/bin/zon
-```
-
 **Uninstallation**
 
-To remove the zon command from your system:
+To remove the zon command and source files from your system:
 
 ```bash
+rm -rf ~/.zonetic
 sudo rm /usr/local/bin/zon
 ```
 
 ## Quick Start: REPL Mode
 
-Zonetic features a built-in **REPL** (Interactive Mode) that allows you to write and execute code on the fly without creating permanent files. It uses a temporary buffer that clears itself after execution.
+Zonetic features a built-in **REPL** (Interactive Mode) that allows you to write and execute code on the fly.
 
 ### How to use `zon repl`
 
@@ -80,29 +61,4 @@ Zonetic features a built-in **REPL** (Interactive Mode) that allows you to write
    ```bash
    zon repl
    ```
-2. **Write your code**: You can write multiple lines.
-3. **Execute**: Type `EOF` on a new line or press `Ctrl+D` to trigger execution.
-
-**Example:**
-```bash
->> mut counter = 0 
->> while counter <= 5 {
->>    print(counter)
->>    counter += 1
->> }
->> EOF
-```
-
-**Result:**
-```text
---- Executing ---
-0
-1
-2
-3
-4
-5
-```
-
-> [!TIP]
-> This mode is perfect for testing logic or syntax quickly. Once the output is displayed, the temporary environment is wiped clean.
+2. **Execute**: Type `EOF` on a new line or press `Ctrl+D` to trigger execution.
