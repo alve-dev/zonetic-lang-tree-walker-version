@@ -33,7 +33,7 @@ if [ -d "$INSTALL_DIR" ]; then
     if [ "$(ls -A "$INSTALL_DIR")" ]; then
         echo "[ ⌐■_■] <( Warning: $INSTALL_DIR is not empty. )"
         echo "[ ⌐■_■] <( Do you want to OVERWRITE its contents? (y/n) )"
-        read -r choice
+        read -r choice </dev/tty
         if [ "$choice" != "${choice#[Yy]}" ]; then
             echo "[ ⌐■_■] <( Cleaning directory... )"
             rm -rf "${INSTALL_DIR:?}"/*
