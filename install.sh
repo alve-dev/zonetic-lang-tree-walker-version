@@ -62,7 +62,7 @@ cd "$INSTALL_DIR" || exit
 # 3. Sparse Checkout (Light installation)
 if [ ! -d ".git" ]; then
     git init -q
-    git remote add origin https://github.com
+    git remote add origin https://github.com/alve-dev/zonetic-lang-tree-walker-version.git
     git config core.sparseCheckout true
     echo "src/zonc/*" > .git/info/sparse-checkout
     echo "scripts/*" >> .git/info/sparse-checkout
