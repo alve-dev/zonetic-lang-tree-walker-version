@@ -26,8 +26,27 @@ check_and_install() {
 check_and_install "git" "git"
 check_and_install "python3" "python3"
 
-INSTALL_DIR="$HOME/.zonetic-full"
-mkdir -p "$INSTALL_DIR" && cd "$INSTALL_DIR" || exit
+# 2. Setup Directory with safety check
+INSTALL_DIR="$HOME/.zonetic"
+
+if [ -d "$INSTALL_DIR" ]; then
+    if [ "$(ls -A "$INSTALL_DIR")" ]; then
+        echo "[ ⌐■_■] <( Warning: $INSTALL_DIR is not empty. )"
+        echo "[ ⌐■_■] <( Do you want to OVERWRITE its contents? (y/n) )"
+        read -r choice
+        if [ "$choice" != "${choice#[Yy]}" ]; then
+            echo "[ ⌐■_■] <( Cleaning directory... )"
+            rm -rf "${INSTALL_DIR:?}"/*
+        else
+            echo "[ ⌐■_■] <( Installation cancelled by user. )"
+            exit 0
+        fi
+    fi
+else
+    mkdir -p "$INSTALL_DIR"
+fi
+
+cd "$INSTALL_DIR" || exit
 
 # Clone all content
 if [ ! -d ".git" ]; then
