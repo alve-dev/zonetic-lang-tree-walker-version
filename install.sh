@@ -30,15 +30,32 @@ check_and_install() {
     fi
 }
 
-# 2. Check basic dependencies
 check_and_install "git" "git"
 check_and_install "python3" "python3"
 
-# 3. Setup Installation Directory
+# 2. Setup Directory with safety check
 INSTALL_DIR="$HOME/.zonetic"
-mkdir -p "$INSTALL_DIR" && cd "$INSTALL_DIR" || exit
 
-# 4. Sparse Checkout (Light installation)
+if [ -d "$INSTALL_DIR" ]; then
+    if [ "$(ls -A "$INSTALL_DIR")" ]; then
+        echo "[ ⌐■_■] <( Warning: $INSTALL_DIR is not empty. )"
+        echo "[ ⌐■_■] <( Do you want to OVERWRITE its contents? (y/n) )"
+        read -r choice
+        if [ "$choice" != "${choice#[Yy]}" ]; then
+            echo "[ ⌐■_■] <( Cleaning directory... )"
+            rm -rf "${INSTALL_DIR:?}"/*
+        else
+            echo "[ ⌐■_■] <( Installation cancelled by user. )"
+            exit 0
+        fi
+    fi
+else
+    mkdir -p "$INSTALL_DIR"
+fi
+
+cd "$INSTALL_DIR" || exit
+
+# 3. Sparse Checkout (Light installation)
 if [ ! -d ".git" ]; then
     git init -q
     git remote add origin https://github.com
@@ -51,9 +68,8 @@ fi
 echo "[ ⌐■_■] <( Syncing with GitHub repository... )"
 git pull origin main -q
 
-# 5. Create Global Command
+# 4. Create Global Command
 chmod +x "$INSTALL_DIR/scripts/zon_launcher.sh"
-
 echo "[ ⌐■_■] <( Configuring 'zon' global command... )"
 $SUDO ln -sf "$INSTALL_DIR/scripts/zon_launcher.sh" "$BIN_DIR/zon"
 
