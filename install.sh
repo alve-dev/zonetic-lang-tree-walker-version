@@ -105,5 +105,5 @@ else
 fi
 
 echo "------------------------------------------------"
-echo "[ ⌐■_■] <( Zonetic installed successfully! )"
-echo "[ ⌐■_■] <( Try running: zon vers )"
+echo "[ ⌐■_■] <(\"Zonetic installed successfully!\")"
+echo "[ ⌐■_■] <(\"Try running: zon vers\")"
