@@ -1,4 +1,4 @@
-Write-Host '[ ⌐■_■] <("Starting FULL Zonetic setup for WINDOWS... ")'
+Write-Host "[ ⌐■_■] <(`"Starting FULL Zonetic setup for WINDOWS...`")"
 
 function Check-And-Install {
     param (
