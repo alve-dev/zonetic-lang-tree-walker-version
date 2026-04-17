@@ -17,7 +17,7 @@ python --version
 Open **PowerShell** and run the following command. This will download and execute the installer, setting up Zonetic in `~/.zonetic` and configuring the global `zon` command:
 
 ```powershell
-irm https://raw.githubusercontent.com/alve-dev/zonetic-lang-tree-walker-version/refs/heads/main/install_windows.ps1 | iex
+irm https://raw.githubusercontent.com/alve-dev/zonetic-compiler/refs/heads/main/install_windows.ps1 | iex
 ```
 
 > [!IMPORTANT]
@@ -28,7 +28,7 @@ irm https://raw.githubusercontent.com/alve-dev/zonetic-lang-tree-walker-version/
 To download the entire repository, including `examples/` and `docs/`:
 
 ```powershell
-irm https://raw.githubusercontent.com/alve-dev/zonetic-lang-tree-walker-version/refs/heads/main/install_windows_complete.ps1 | iex
+irm https://raw.githubusercontent.com/alve-dev/zonetic-compiler/refs/heads/main/install_windows_complete.ps1 | iex
 ```
 
 ## 4. Keep Zonetic Updated
