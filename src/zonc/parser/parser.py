@@ -4,7 +4,7 @@ from zonc.zonc_errors import DiagnosticEngine, ErrorCode
 from zonc.enviroment import Enviroment
 from zonc.location_file import Span, FileMap
 from typing import List, Union
-
+from zonc.utils import levenshtein_zon
 
 class Parser:
     COMPOUND_TO_OPERATOR = {
@@ -303,8 +303,17 @@ class Parser:
                             var_type = self.LIST_TYPE[zon_type._value]
 
                         else:
+                            list_type = ["int", "string", "bool", "float"]
+                            for key in self.LIST_TYPE:
+                                list_type.append(key)
+                            
+                            leven = levenshtein_zon.suggest_command(zon_type._value, list_type)
+                            if leven is None: leven = ""
+                            else: leven = f", did you mean?: `{leven}`"
+                                
                             span_end = self.get_error_span(zon_type)
-                            self.diag.emit(ErrorCode.E2002, { "type" : zon_type._value }, [Span(start, span_end.end, self.file_map)], [(span_end, "is not a valid type in Zonetic")])
+                            self.diag.emit(ErrorCode.E2002, { "type" : zon_type._value, "leven" : leven }, [Span(start, span_end.end, self.file_map)],
+                                           [(span_end, "is not a valid type in Zonetic{leven}")])
                             self.advance()
                             self.synchronize(block)
                             return ErrorNode(Span(0, 0, self.file_map))
@@ -521,8 +530,18 @@ class Parser:
                                 zontype = self.LIST_TYPE[zontype_token._value]
                             
                             else:
+                                list_type = ["int", "string", "bool", "float"]
+                                for key in self.LIST_TYPE:
+                                    list_type.append(key)
+                            
+                                leven = levenshtein_zon.suggest_command(zontype_token._value, list_type)
+                                if leven is None: leven = ""
+                                else: leven = f", did you mean?: `{leven}`"
+                                
                                 span = self.get_error_span(zontype_token)
-                                self.diag.emit(ErrorCode.E2019, { "type" : zontype_token._value }, [span], [(span, "`{type}` is not a valid parameter type")])
+                                self.diag.emit(ErrorCode.E2019, { "type" : zontype_token._value, "leven" : leven }, [span],
+                                [(span, "`{type}` is not a valid parameter type{leven}")])
+                                
                                 self.advance()
                                 self.synchronize(block, [TokenType.COMMA, TokenType.RPAREN])
                                 if self.check(TokenType.COMMA):
@@ -584,8 +603,17 @@ class Parser:
                         return_type = self.LIST_TYPE[zontype_token._value]
                     
                     else:
+                        list_type = ["int", "string", "bool", "float", "void"]
+                        for key in self.LIST_TYPE:
+                            list_type.append(key)
+                            
+                        leven = levenshtein_zon.suggest_command(zontype_token._value, list_type)
+                        if leven is None: leven = ""
+                        else: leven = f", did you mean?: `{leven}`"
+                        
                         span = self.get_error_span(zontype_token)
-                        self.diag.emit(ErrorCode.E2022, { "token" : zontype_token._value }, [span], [(span, "a valid return type or `void` was expected here")])
+                        self.diag.emit(ErrorCode.E2022, { "token" : zontype_token._value, "leven" : leven }, [span],
+                        [(span, "a valid return type or `void` was expected here{leven}")])
                         self.synchronize(block, [TokenType.LBRACE])
                         return ErrorNode(Span(0, 0, self.file_map))
         else:

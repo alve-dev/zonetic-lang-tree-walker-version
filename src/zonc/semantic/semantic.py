@@ -5,6 +5,7 @@ from zonc.zonc_errors import ErrorCode
 from zonc.location_file import Span, FileMap
 from dataclasses import dataclass, field
 import copy
+from zonc.utils import levenshtein_zon
 
 # TODO: hacxer error para printeo raros como object struct, 
 
@@ -39,13 +40,13 @@ class Semantic:
         scope.define("print", FuncSymbol([], span_aux, span_aux, ZonType(5, "void"), True, True))
         scope.define("readInt", FuncSymbol(
             [Param(False, "prompt", ZonType(4, "string"), StringLiteral(" ", span_aux), span_aux, span_aux)],
-            span_aux, span_aux, ZonType(1, "int"), True, True))
+            span_aux, span_aux, ZonType(1, "int"), True, False))
         scope.define("readFloat", FuncSymbol(
             [Param(False, "prompt", ZonType(4, "string"), StringLiteral(" ", span_aux), span_aux, span_aux)],
-            span_aux, span_aux, ZonType(2, "float"), True, True))
+            span_aux, span_aux, ZonType(2, "float"), True, False))
         scope.define("readString", FuncSymbol(
             [Param(False, "prompt", ZonType(4, "string"), StringLiteral(" ", span_aux), span_aux, span_aux)],
-            span_aux, span_aux, ZonType(4, "string"), True, True))
+            span_aux, span_aux, ZonType(4, "string"), True, False))
           
     TYPE_TABLE = {}
 
@@ -134,7 +135,13 @@ class Semantic:
                 
                 if isinstance(symbol, FuncSymbol): continue
                 if symbol is None:
-                    self.diag.emit(ErrorCode.E3001, { "name" : stmt.name }, [stmt.span], [(stmt.span_name, "does not exist in this scope")])
+                    list_type = scope.get_values_valids("var")
+                    leven = levenshtein_zon.suggest_command(stmt.name, list_type)
+                    if leven is None: leven = ""
+                    else: leven = f", did you mean?: `{leven}`"
+                    
+                    self.diag.emit(ErrorCode.E3001, { "name" : stmt.name, "leven" : leven }, [stmt.span],
+                    [(stmt.span_name, "does not exist in this scope{leven}")])
                     continue
                     
                 is_empty = symbol.is_empty
@@ -157,7 +164,7 @@ class Semantic:
                     zon_type = zon_type[0]
                 
                 self.check_declaration_stmt(stmt.decl_stmt, scope)
-                if zon_type.num == 0: return
+                if zon_type.num == 0: continue
                 
                 symbol = scope.get_symbol(stmt.decl_stmt.name)
                 if symbol.zontype.num == 0:
@@ -252,12 +259,18 @@ class Semantic:
                 
                 symbol_object = scope.get_symbol(current.name)
                 if symbol_object is None:
+                    list_type = scope.get_values_valids("varob")
+                    leven = levenshtein_zon.suggest_command(current.name, list_type)
+                    if leven is None: leven = ""
+                    else: leven = f", did you mean?: `{leven}`"
+                    
                     self.diag.emit(
-                        ErrorCode.E3030, { "name" : current.name }, [current.span], [(current.span, "`{name}` does not exist in this scope")]
+                        ErrorCode.E3030, { "name" : current.name, "leven" : leven }, [current.span],
+                        [(current.span, "`{name}` does not exist in this scope{leven}")]
                     )
                     continue
                 
-                scope_object = symbol_object.scope_object
+                scope_object: Enviroment = symbol_object.scope_object
                 if symbol_object.scope_object is None:
                     self.diag.emit(
                         ErrorCode.E3031, { "name" : current.name }, [current.span], [(current.span, "`{name}` is not a struct object")]
@@ -265,11 +278,15 @@ class Semantic:
                     continue
                 
                 for i, obj in enumerate(path):
-                    
                     if not scope_object.exist_here(obj.field):
+                        list_type = scope_object.get_values_valids("var", True)
+                        leven = levenshtein_zon.suggest_command(obj.field, list_type)
+                        if leven is None: leven = ""
+                        else: leven = f", did you mean?: `{leven}`"
+                        
                         self.diag.emit(
-                            ErrorCode.E3032, { "struct_name" : symbol_object.zontype.name, "field" : obj.field }, [obj.span],
-                            [(obj.span, "`{field}` does not exist in `{struct_name}`")]
+                            ErrorCode.E3032, { "struct_name" : symbol_object.zontype.name, "field" : obj.field, "leven" : leven }, [obj.span],
+                            [(obj.span, "`{field}` does not exist in `{struct_name}`{leven}")]
                         )
                         continue
                     
@@ -285,9 +302,14 @@ class Semantic:
                     scope_object = symbol_object.scope_object
 
                 if not scope_object.exist_here(stmt.field_assign.name):
+                    list_type = scope_object.get_values_valids("var", True)
+                    leven = levenshtein_zon.suggest_command(stmt.field_assign.name, list_type)
+                    if leven is None: leven = ""
+                    else: leven = f", did you mean?: `{leven}`"
+                    
                     self.diag.emit(
-                        ErrorCode.E3033, { "field" : stmt.field_assign.name }, [stmt.field_assign.span],
-                        [(stmt.field_assign.span), "`{field}` is not a valid field for assignment here"]
+                        ErrorCode.E3033, { "field" : stmt.field_assign.name, "leven" : leven }, [stmt.field_assign.span],
+                        [(stmt.field_assign.span_name, "`{field}` is not a valid field for assignment here{leven}")]
                     )
                     continue
                 
@@ -424,7 +446,13 @@ class Semantic:
         there_is_error = False
         
         if func_symbol is None or isinstance(func_symbol, Symbol):
-            self.diag.emit(ErrorCode.E3020, { "name" : node.name }, [node.span], [(node.span, "cannot call `{name}` because it has not been defined")])
+            list_type = scope.get_values_valids("fun")
+            leven = levenshtein_zon.suggest_command(node.name, list_type)
+            if leven is None: leven = ""
+            else: leven = f", did you mean?: `{leven}`"
+            
+            self.diag.emit(ErrorCode.E3020, { "name" : node.name, "leven" : leven }, [node.span],
+            [(node.span, "cannot call `{name}` because it has not been defined{leven}")])
             if not there_is_error: there_is_error = True
             return
         
@@ -480,8 +508,16 @@ class Semantic:
                         func_param = func_symbol.params[i]
                 
                 if func_param is None:
-                    self.diag.emit(ErrorCode.E3023, { "name" : node.name, "name_param" : key },
-                    [value[1]], [(value[2], "this parameter does not exist in `{name}`")])
+                    list_type = []
+                    for key in func_params:
+                        list_type.append(key)
+                    
+                    leven = levenshtein_zon.suggest_command(key, list_type)
+                    if leven is None: leven = ""
+                    else: leven = f", did you mean?: `{leven}`"
+                    
+                    self.diag.emit(ErrorCode.E3023, { "name" : node.name, "name_param" : key, "leven" : leven },
+                    [value[1]], [(value[2], "this parameter does not exist in `{name}`{leven}")])
                     if not there_is_error: there_is_error = True
                     continue
                 
@@ -528,7 +564,13 @@ class Semantic:
             symbol = scope_field.get_symbol(node.name)
             
         if symbol is None:
-            self.diag.emit(ErrorCode.E3001, { "name" : node.name }, [node.span], [(node.span_name, "does not exist in this scope")])
+            list_type = scope.get_values_valids("var")
+            leven = levenshtein_zon.suggest_command(node.name, list_type)
+            if leven is None: leven = ""
+            else: leven = f", did you mean?: `{leven}`"
+            
+            self.diag.emit(ErrorCode.E3001, { "name" : node.name}, [node.span],
+            [(node.span_name, f"does not exist in this scope{leven}")])
             return
         
         if isinstance(symbol, FuncSymbol): return
@@ -737,7 +779,12 @@ class Semantic:
         elif isinstance(expr, VariableExpr):
             symbol = scope.get_symbol(expr.name)
             if symbol is None:
-                self.diag.emit(ErrorCode.E3001, { "name" : expr.name }, [expr.span], [(expr.span, "does not exist in this scope")])
+                list_type = scope.get_values_valids("var")
+                leven = levenshtein_zon.suggest_command(expr.name, list_type)
+                if leven is None: leven = ""
+                else: leven = f", did you mean?: `{leven}`"
+                
+                self.diag.emit(ErrorCode.E3001, { "name" : expr.name }, [expr.span], [(expr.span, f"does not exist in this scope{leven}")])
                 return zontype_err
             
             elif symbol.is_empty:
@@ -759,8 +806,13 @@ class Semantic:
             
             symbol_object = scope.get_symbol(current.name)
             if symbol_object is None:
+                list_type = scope.get_values_valids("varob")
+                leven = levenshtein_zon.suggest_command(current.name, list_type)
+                if leven is None: leven = ""
+                else: leven = f", did you mean?: `{leven}`"
                 self.diag.emit(
-                    ErrorCode.E3030, { "name" : current.name }, [current.span], [(current.span, "`{name}` does not exist in this scope")]
+                    ErrorCode.E3030, { "name" : current.name, "leven" : leven }, [current.span],
+                    [(current.span, "`{name}` does not exist in this scope{leven}")]
                 )
                 return zontype_err
             
@@ -778,9 +830,13 @@ class Semantic:
                     break
                 
                 if not scope_object.exist_here(obj.field):
+                    list_type = scope_object.get_values_valids("var", True)
+                    leven = levenshtein_zon.suggest_command(obj.field, list_type)
+                    if leven is None: leven = ""
+                    else: leven = f", did you mean?: `{leven}`"
                     self.diag.emit(
                         ErrorCode.E3032, { "struct_name" : symbol_object.zontype.name, "field" : obj.field }, [obj.span],
-                        [(obj.span, "`{field}` does not exist in `{struct_name}`")]
+                        [(obj.span, "`{field}` does not exist in `{struct_name}`{leven}")]
                     )
                     return zontype_err
                 
@@ -796,9 +852,13 @@ class Semantic:
                 scope_object = symbol_object[1]
 
             if not scope_object.exist_here(path[-1].field):
+                list_type = scope_object.get_values_valids("var", True)
+                leven = levenshtein_zon.suggest_command(path[-1].field, list_type)
+                if leven is None: leven = ""
+                else: leven = f", did you mean?: `{leven}`"
                 self.diag.emit(
-                    ErrorCode.E3040, { "field" : path[-1].field }, [path[-1].span],
-                    [(path[-1].span, "`{field}` does not exist here")]
+                    ErrorCode.E3040, { "field" : path[-1].field , "leven" : leven }, [path[-1].span],
+                    [(path[-1].span, "`{field}` does not exist here{leven}")]
                 )
                 return zontype_err
             
@@ -812,10 +872,19 @@ class Semantic:
             struct_blueprint: Enviroment = self.TYPE_TABLE.get(expr.name_struct)
             
             if struct_blueprint is None:
+                list_type = []
+                if not self.TYPE_TABLE is None:
+                    for key in self.TYPE_TABLE:
+                        list_type.append(key)
+                        
+                leven = levenshtein_zon.suggest_command(expr.name_struct, list_type)
+                if leven is None: leven = ""
+                else: leven = f", did you mean?: `{leven}`"
+                
                 span_err = Span(expr.span.start, expr.span.start + 1, self.file_map)
                 self.diag.emit(
-                    ErrorCode.E3038, { "name" : expr.name_struct }, [span_err],
-                    [(span_err, "`{name}` is not a declared struct")]
+                    ErrorCode.E3038, { "name" : expr.name_struct, "leven" : leven }, [span_err],
+                    [(span_err, "`{name}` is not a declared struct{leven}")]
                 )
                 return zontype_err
             
@@ -886,9 +955,16 @@ class Semantic:
                         zontype_field = zontype_field[0]
                     
                     if field_struct is None:
+                        list_type = []
+                        for tup in field_list:
+                            list_type.append(tup[0])
+                        
+                        leven = levenshtein_zon.suggest_command(key, list_type)
+                        if leven is None: leven = ""
+                        else: leven = f", did you mean?: `{leven}`"
                         self.diag.emit(
-                            ErrorCode.E3036, { "field" : key, "struct_name" : expr.struct_type.name },
-                            [value[2]], [(value[2], "`{field}` does not exist in `{struct_name}`")]
+                            ErrorCode.E3036, { "field" : key, "struct_name" : expr.struct_type.name, "leven" : leven },
+                            [value[2]], [(value[2], "`{field}` does not exist in `{struct_name}`{leven}")]
                         )
                         continue
                     

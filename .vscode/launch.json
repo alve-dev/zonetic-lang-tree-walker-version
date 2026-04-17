@@ -22,7 +22,7 @@
             "env" : {
                 "PYTHONPATH" : "src"
             },
-            "args" : ["ast", "examples/exercises/fibonacci.zon", "--debug"],
+            "args" : ["r", "test.zon", "--debug"],
         }
     ]
 }

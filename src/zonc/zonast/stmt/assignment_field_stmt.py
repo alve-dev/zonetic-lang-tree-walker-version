@@ -16,7 +16,16 @@ class AssignmentFieldStmt(NodeStmt):
         self.span = span
 
     def get_details(self):
-        return 
+        detail = [self.field_assign.name, '=', 'expr']
+        current = self.object_name
+        while isinstance(current, FieldExpr):
+            detail.insert(0, '.')
+            detail.insert(0, current.field)
+            
+        detail.insert(0, '.')
+        detail.insert(0, current.name)
+        
+        return "".join(detail)
     
     def get_children(self):
-        pass
+        return [self.field_assign]

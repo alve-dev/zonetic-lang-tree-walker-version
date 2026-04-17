@@ -30,5 +30,21 @@ class Operator(Enum):
     LE = auto()  # `<=`, Less or Equal
     
     def get_details(self):
-        return self.name
+        match self.value:
+            case 1: return '+'
+            case 2: return '-'
+            case 3: return '*'
+            case 4: return '/'
+            case 5: return '**'
+            case 6: return '%'
+            case 7: return '-'
+            case 8: return 'and/&&'
+            case 9: return 'or/||'
+            case 10: return 'not/!'
+            case 11: return '=='
+            case 12: return '!='
+            case 13: return '>'
+            case 14: return '<'
+            case 15: return '>='
+            case 16: return '<='
     

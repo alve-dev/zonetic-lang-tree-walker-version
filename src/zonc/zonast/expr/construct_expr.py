@@ -21,8 +21,14 @@ class ConstructExpr(NodeExpr):
         return f"{self.name_struct}[]"
     
     def get_children(self):
+        children: list = None
+        if self.list_assign is None:
+            children = []
+        else:
+            children = self.list_assign    
+        
         if not self.dict_assign is None:
             for key, param in self.dict_assign.items():
-                self.list_assign.append(param[0])
+                children.append(param[0])
 
-        return self.list_assign
+        return children
