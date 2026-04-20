@@ -10,8 +10,15 @@ function Check-And-Install {
         [string]$PackageId
     )
 
-    if (!(Get-Command $CommandName -ErrorAction SilentlyContinue)) {
-        $input = Read-Host "[ ⌐■_■] <(`"Error: '$CommandName' is missing. Install it now? (y/n)`") "
+    $versionCheck = $null
+    if ($CommandName -eq "g++") {
+        $versionCheck = g++ --version 2>$null
+    } else {
+        $versionCheck = Get-Command $CommandName -ErrorAction SilentlyContinue
+    }
+
+    if (!$versionCheck) {
+        $input = Read-Host "[ ⌐■_■] <(`"Error: '$CommandName' is missing or broken. Install it now? (y/n)`") "
         $answer = $input.ToLower()
 
         if ($answer -ne "y" -and $answer -ne "n") {
@@ -28,15 +35,29 @@ function Check-And-Install {
             
             Refresh-Env
             
-            if ($CommandName -eq "g++" -and !(Get-Command "g++" -ErrorAction SilentlyContinue)) {
-                Write-Host "[ ⌐■_■] <(`"Searching for g++ location...`")"
-                $mingwPath = Get-ChildItem -Path "C:\", "C:\Program Files" -Filter "g++.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty DirectoryName
+            if ($CommandName -eq "g++") {
+                Write-Host "[ ⌐■_■] <(`"Locating GNU compiler...`")"
+                $possiblePaths = @(
+                    "C:\msys64\mingw64\bin",
+                    "C:\msys64\ucrt64\bin",
+                    "C:\Program Files\mingw-w64\*\mingw64\bin"
+                )
+                
+                $mingwPath = $null
+                foreach ($p in $possiblePaths) {
+                    if (Test-Path "$p\g++.exe") { $mingwPath = $p; break }
+                }
+
+                if (!$mingwPath) {
+                    $mingwPath = Get-ChildItem -Path "C:\Program Files" -Filter "g++.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty DirectoryName
+                }
+
                 if ($mingwPath) {
                     $oldPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
                     if ($oldPath -notlike "*$mingwPath*") {
                         [System.Environment]::SetEnvironmentVariable("Path", "$oldPath;$mingwPath", "User")
                         $env:Path += ";$mingwPath"
-                        Write-Host "[ ⌐■_■] <(`"g++ found and added to PATH: $mingwPath`")"
+                        Write-Host "[ ⌐■_■] <(`"g++ linked successfully: $mingwPath`")"
                     }
                 }
             }
