@@ -24,7 +24,7 @@ check_and_install() {
             while true; do
                 read -p "[ o_0] <(\"Are you feeling okay?, I need a (y/n), don't fail me now\") " input </dev/tty
                 answer=$(echo "$input" | tr '[:upper:]' '[:lower:]')
-
+                
                 if [[ "$answer" == "y" || "$answer" == "n" ]]; then
                     break
                 fi
@@ -43,15 +43,17 @@ check_and_install() {
 
 check_and_install "git" "git"
 check_and_install "python3" "python3"
+check_and_install "g++" "g++"
 
 INSTALL_DIR="$HOME/.zonetic"
+ZONC_DIR="$INSTALL_DIR/.zonc"
+ZONVM_DIR="$INSTALL_DIR/.zonvm"
 
 if [ -d "$INSTALL_DIR" ]; then
     FILE_COUNT=$(ls -A "$INSTALL_DIR" 2>/dev/null | wc -l)
     if [ "$FILE_COUNT" -gt 0 ]; then
-        echo "[ ⌐■_■] <(\"Warning: $INSTALL_DIR is not empty ($FILE_COUNT files found).\")"
+        echo "[ ⌐■_■] <(\"Warning: $INSTALL_DIR is not empty.\")"
         read -p "[ ⌐■_■] <(\"Do you want to OVERWRITE its contents? (y/n)\") " choice </dev/tty
-
         choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
 
         if [[ "$choice" != "y" && "$choice" != "n" ]]; then
@@ -67,27 +69,22 @@ if [ -d "$INSTALL_DIR" ]; then
         if [[ "$choice" == "y" ]]; then
             echo "[ ⌐■_■] <(\"Cleaning directory...\")"
             rm -rf "${INSTALL_DIR:?}"/*
-            rm -rf "${INSTALL_DIR:?}"/.* 2>/dev/null
         else
             echo "[ ⌐■_■] <(\"Installation cancelled by user.\")"
             exit 0
         fi
     fi
-else
-    mkdir -p "$INSTALL_DIR" > /dev/null 2>&1
 fi
 
-cd "$INSTALL_DIR" || exit
+mkdir -p "$ZONC_DIR" "$ZONVM_DIR" > /dev/null 2>&1
 
-if [ ! -d ".git" ]; then
-    echo "[ ⌐■_■] <(\"Cloning full repository...\")"
-    git clone -q https://github.com/alve-dev/zonetic-lang-tree-walker-version.git . > /dev/null 2>&1
-else
-    echo "[ ⌐■_■] <(\"Updating existing repository...\")"
-    git pull origin main
-fi
+echo "[ ⌐■_■] <(\"Downloading Zonetic Compiler...\")"
+git clone https://github.com/alve-dev/zonetic-lang-tree-walker-version.git "$ZONC_DIR" -q
 
-LAUNCHER_PATH="$INSTALL_DIR/scripts/zon_launcher.sh"
+echo "[ ⌐■_■] <(\"Downloading Zonetic VM...\")"
+git clone https://github.com/alve-dev/zonetic-vm.git "$ZONVM_DIR" -q
+
+LAUNCHER_PATH="$ZONC_DIR/scripts/zon_launcher.sh"
 
 if [ -f "$LAUNCHER_PATH" ]; then
     chmod +x "$LAUNCHER_PATH"
@@ -99,5 +96,5 @@ else
 fi
 
 echo "------------------------------------------------"
-echo "[ ⌐■_■] <(\"Zonetic installed successfully!\")"
-echo "[ ⌐■_■] <(\"Try running: zon vers\")"
+echo "[ ⌐■_■] <(\"Zonetic v2.0.0 installed successfully!\")"
+echo "[ ⌐■_■] <(\"Try running: zon repl\")"

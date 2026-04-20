@@ -22,7 +22,7 @@
             "env" : {
                 "PYTHONPATH" : "src"
             },
-            "args" : ["r", "test.zon", "--debug"],
+            "args" : ["repl", "test.zbc", "--debug"],
         }
     ]
 }

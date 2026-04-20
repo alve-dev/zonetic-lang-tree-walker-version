@@ -30,14 +30,16 @@ function Check-And-Install {
 
 Check-And-Install "git" "Git.Git"
 Check-And-Install "python" "Python.Python.3.12"
+Check-And-Install "g++" "GNU.MinGW-w64"
 
 $InstallDir = "$HOME\.zonetic"
+$ZoncDir = "$InstallDir\.zonc"
+$ZonvmDir = "$InstallDir\.zonvm"
 
 if (Test-Path $InstallDir) {
     $FileCount = (Get-ChildItem -Path $InstallDir -Force).Count
-    
     if ($FileCount -gt 0) {
-        Write-Host "[ ⌐■_■] <(`"Warning: $InstallDir is not empty ($FileCount files found).`")"
+        Write-Host "[ ⌐■_■] <(`"Warning: $InstallDir is not empty.`")"
         $choiceIn = Read-Host "[ ⌐■_■] <(`"Do you want to OVERWRITE its contents? (y/n)`")"
         $choice = $choiceIn.ToLower()
 
@@ -57,31 +59,28 @@ if (Test-Path $InstallDir) {
             exit 0
         }
     }
-} else {
-    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
 
-Set-Location $InstallDir
+New-Item -ItemType Directory -Path $ZoncDir -Force | Out-Null
+New-Item -ItemType Directory -Path $ZonvmDir -Force | Out-Null
 
-if (!(Test-Path ".git")) {
-    Write-Host "[ ⌐■_■] <(`"Cloning full repository...`")"
-    git clone -q https://github.com/alve-dev/zonetic-lang-tree-walker-version.git . 2>$null
-} else {
-    Write-Host "[ ⌐■_■] <(`"Updating existing repository...`")"
-    git pull origin main -q 2>$null
-}
+Write-Host "[ ⌐■_■] <(`"Downloading Zonetic Compiler...`")"
+git clone https://github.com/alve-dev/zonetic-lang-tree-walker-version.git "$ZoncDir" -q
+
+Write-Host "[ ⌐■_■] <(`"Downloading Zonetic VM...`")"
+git clone https://github.com/alve-dev/zonetic-vm.git "$ZonvmDir" -q
 
 Write-Host "[ ⌐■_■] <(`"Configuring 'zon' global command...`")"
+$LauncherDir = "$ZoncDir\scripts"
 $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$NewPath = "$InstallDir\scripts"
 
-if ($UserPath -notlike "*$NewPath*") {
-    [Environment]::SetEnvironmentVariable("Path", "$UserPath;$NewPath", "User")
+if ($UserPath -notlike "*$LauncherDir*") {
+    [Environment]::SetEnvironmentVariable("Path", "$UserPath;$LauncherDir", "User")
     Write-Host "[ ⌐■_■] <(`"Path updated successfully!`")"
 } else {
     Write-Host "[ ⌐■_■] <(`"Path already exists. No changes needed.`")"
 }
 
 Write-Host "------------------------------------------------"
-Write-Host "[ ⌐■_■] <(`"Zonetic installed successfully!`")"
-Write-Host "[ ⌐■_■] <(`"IMPORTANT: exit command and run powershell, after try running: zon vers`")"
+Write-Host "[ ⌐■_■] <(`"Zonetic v2.0.0 installed successfully!`")"
+Write-Host "[ ⌐■_■] <(`"IMPORTANT: Restart PowerShell and try: zon vw --vers`")"

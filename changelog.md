@@ -2,8 +2,47 @@
 
 All notable changes to Zonetic are documented here.
 Versions are listed from newest to oldest.
- 
+
 ---
+
+## v2.0.0 — *The First Step To VM*
+
+> Transition from Tree-walking to a high-performance C++ Virtual Machine based on Registers and RISC-V architecture. This version introduces the modular ecosystem (Compiler + VM).
+
+**Core Infrastructure (ZonVM)**
+
+* **High-Performance C++ Backend** — Implementation of a new execution engine written in C++20 for maximum efficiency.
+* **RISC-V Inspired Architecture** — Adhesion to the RV32I standard with 32 general-purpose registers (`x0-x31`) and 64-bit double precision.
+* **Instruction Set Architecture (ISA)** — Support for `I-Type` (immediates) and `R-Type` (register-to-register) instructions, including the `M-Extension` (MUL, DIV, REM).
+* **Binary Bytecode Format** — Introduction of the `.zbc` (Zonetic Bytecode) format with custom magic number validation (`0x5A4F4E21`).
+
+**Compiler & Bytecode Generation**
+
+* **The Emitter Pipeline** — New backend phase that transforms the Semantic Tree into binary instructions.
+* **Intelligent Register Allocation** — Implementation of a `Register Manager` to handle temporary and saved registers (`t` and `s` registers) following standard ABI rules.
+* **Smart Execution Flow** — The `zon r` (run) command is now intelligent:
+    - If input is `.zon`: Compiles to bytecode and executes immediately.
+    - If input is `.zbc`: Skips compilation and runs directly in the VM.
+* **Zonetic Compiler (Zonc)** — Refactored the internal pipeline to: `Lexer → Normalizer → Parser → Semantic → Bytecodegen`.
+
+**CLI Evolution & Commands**
+
+* **Command Hierarchy Refactor** — Transitioned from flat commands to a "Area + Flag" hierarchy for better scalability:
+    - `zon st --zbc` / `zon st --path`: Area for state and configuration.
+    - `zon clr --his`: Area for cleanup operations.
+    - `zon vw --file` / `zon vw --ast` / `zon vw --vers`: Area for visualization and diagnostics.
+* **Lazy Compilation in Launcher** — The global launcher now detects the absence of the VM binary and compiles the C++ source on-the-fly using `g++`.
+* **Hybrid REPL Mode** — Maintained the legacy interpreter via `zon repl --in` while the default `zon repl` now targets the Bytecode VM.
+
+**Distribution & Organization**
+
+* **Modular Directory Structure** — New organized setup under `~/.zonetic/` with hidden sub-directories:
+    - `.zonc/`: Python compiler and scripts.
+    - `.zonvm/`: C++ source and VM headers.
+* **Unified Versioning** — Synchronized versioning between the Compiler and VM to ensure bytecode compatibility.
+
+---
+
 ## v0.1.6 — *The Fashionable Update*
 
 > High-performance UX overhaul, intelligent REPL mechanics, and advanced CLI diagnostics for Linux and Android.
@@ -12,22 +51,22 @@ Versions are listed from newest to oldest.
 
 * **Advanced Line Editing** — Implementation of `GNU Readline` support, enabling horizontal cursor movement (← / →) and standard terminal shortcuts (**Ctrl+L**, **Ctrl+W**, **Ctrl+A/E**).
 * **Persistent Unified History** — Added a 500-line history buffer shared between `REPL mode` and `setfile`. Commands are now stored in `~/.zonhistoryrepl`.
-* **Intelligent Autocomplete** — Integrated a keyword-driven completion engine. The REPL now dynamically pulls keywords directly from the Lexer’s "Single Source of Truth" to provide **TAB** completion (includes `EOF` and `exit()`).
-* **History Maintenance** — Added the `clrhis` command to the launcher. It performs a 0-byte truncation of the history file for a clean privacy reset.
-* **Resilient Initialization** — Automatic creation of history files with built-in `OSError` handling to ensure stability in read-only or restricted environments.
+* **Intelligent Autocomplete** — Integrated a keyword-driven completion engine. The REPL now dynamically pulls keywords directly from the Lexer’s "Single Source of Truth" to provide **TAB** completion.
+* **History Maintenance** — Added the `clrhis` command to the launcher for a clean privacy reset.
+* **Resilient Initialization** — Automatic creation of history files with built-in `OSError` handling.
 
 **CLI & Visualization**
 
-* **Pretty Print Diagnostics** — Complete redesign of `zon ast` and `zon tokens`. Outputs now feature enhanced visual hierarchy and formatting for easier debugging of the syntax tree.
-* **Refined Auto-Update** — Fixed critical permission bugs in the Linux/Termux `zon update` flow. The updater now ensures the execution bit (`+x`) is restored post-synchronization.
-* **Unified Core Logic** — Synchronized the execution engine for both interactive and file-based modes, ensuring that UX improvements in the REPL are inherited by `setfile`.
+* **Pretty Print Diagnostics** — Complete redesign of `zon ast` and `zon tokens` with enhanced visual hierarchy.
+* **Refined Auto-Update** — Fixed critical permission bugs in the Linux/Termux `zon update` flow.
+* **Unified Core Logic** — Synchronized the execution engine for both interactive and file-based modes.
 
 **Technical Fixes**
 
-* **Keyboard Mapping** — Fixed a conflict in `parse_and_bind` that intercepted the 'b' key, restoring standard character input while maintaining Emacs-style control shortcuts.
-* **Environment Parity** — Optimized terminal escape sequences to ensure Linux/Termux performance doesn't conflict with Windows PowerShell's native handling.
+* **Keyboard Mapping** — Fixed a conflict in `parse_and_bind` that intercepted the 'b' key.
+* **Environment Parity** — Optimized terminal escape sequences for Linux/Termux vs Windows.
 
-> **Coming next** — **v2.0.0**: The dawn of **Zonetic 2**. Transitioning from Tree-walking to a high-performance C++ Virtual Machine based on Registers and > RISC-V architecture.
+> **Note:** This was the last version using the Tree-walker as the primary execution engine.
 
 ---
 

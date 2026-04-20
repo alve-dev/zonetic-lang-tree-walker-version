@@ -11,6 +11,7 @@ import os
 from zonc.utils import Chronometer
 import readline
 import atexit
+from zonc.bytecodegen import *
 
 if os.name == 'nt':
     CONFIG_FILE = pathlib.Path(os.environ.get('USERPROFILE', pathlib.Path.home())) / ".zonconfig"
@@ -193,7 +194,96 @@ def cmd_zon_run(rute_script: str = " ", cmd: str = "run", code_source: str = Non
     except KeyboardInterrupt:
         print("""\n[zon note]: program interrupted by user.
 -- Did an infinite loop get you? Check your loops and conditions.""")
+
+def cmd_zon_compile(rute_script: str = " ", code_source: str = None, direct_zbc: str = None):
+    chrono_compiler = Chronometer()
+    chrono_compiler.start()
     
+    code = " "
+    name_file = " "
+    if code_source is None:
+        path_name = get_target_path(rute_script)
+    
+        if path_name is None:
+            print("[zon error]: The path or file could not be found.")
+            print("-- Double-check your spelling and ensure the file exists in that directory.")
+            return
+        
+        if not path_name.is_file():
+            print(f"[zon error]: '{path_name.name}' is not a file.")
+            print("-- You provided a directory path. Please specify the exact .zon file you want to run.")
+            return
+        
+        if path_name.suffix != ".zon":
+            print(f"[zon error]: '{path_name.name}' is not a Zonetic file.")
+            print("-- The engine only accepts files with the .zon extension. Please check your file type.")
+            return
+        
+        with open(path_name, "r", newline=None) as file_zon:
+            code = file_zon.read()
+            
+        name_file = path_name.name
+    else:
+        code = code_source
+        name_file = "repl"
+        
+    # File Map
+    file_map = FileMap(code) 
+
+    # Diagnostic Engine
+    diagnostic = DiagnosticEngine(name_file, code, file_map)
+    
+    # List Token
+    tokens = ListTokens()
+    
+    # Lexer
+    lexer = Lexer(code, tokens, diagnostic, file_map, KEYWORDS)
+    tokens = lexer.scan_script()
+    
+    if diagnostic.has_errors():
+        diagnostic.display()
+        diagnostic.clear_engine()
+        return
+    
+    if tokens._len() < 2:
+        print(f"Zonetic Compiler Message: The file `{name_file}` has nothing important to parse")
+        return
+    
+    # Normalizer
+    the_normalizer = TheNormalizer(tokens, diagnostic, file_map)
+    tokens = the_normalizer.normalizer()
+    
+    if diagnostic.has_errors():
+        diagnostic.display()
+        diagnostic.clear_engine()
+        return
+    
+    # Parser
+    parser = Parser(tokens, diagnostic, file_map)
+    root_node = parser.parse_program(name_file)
+    
+    if diagnostic.has_errors():
+        diagnostic.display()
+        diagnostic.clear_engine()
+        return
+    
+    # Semantic
+    semantic_checker = Semantic(diagnostic, file_map)
+    semantic_checker.check_ast(root_node, False)
+    
+    if diagnostic.has_errors():
+        diagnostic.display()
+        diagnostic.clear_engine()
+        return
+            
+    em = Emitter()
+    for stmt in root_node.stmts:
+        em.generate_stmt(stmt)
+    em.emit_halt()
+    if direct_zbc is None:
+        em.save(path_name.with_suffix(".zbc"))
+    else:
+        em.save(direct_zbc)
    
 def cmd_zon_version():
     print("[zon info]: Zonetic Programming Language")
@@ -201,29 +291,64 @@ def cmd_zon_version():
     print("         I've officially learned to hop between Android, Linux, and Windows!")
     print("         I’m like a digital nomad, but without the expensive coffee...\")")
     
-def cmd_zon_help(specific_command=None, commands=None):
-    if specific_command:
-        if specific_command in commands:
-            if specific_command == "help":
-                print("[zon info]: Help about... help?")
-                print("[ o_O] <(\"Yo Dawg, I heard you like help, so I put some help") 
-                print("         in your help so you can get help while you help!\")\n")
-            
-            print(f"Usage: zon {specific_command} [arguments]")
-            print(f"Description: {commands[specific_command]}")
+def cmd_zon_help(command_name: str = None, commands=None):
+    # --- MODO ESPECÍFICO (zon help <command>) ---
+    if command_name and command_name in commands:
+        cmd = commands[command_name]
+        if command_name == "help":
+            print("HELP: Area 'help'?")
         else:
-            print(f"[zon error]: Command '{specific_command}' not found in help.")
+            print(f"HELP: Area '{cmd.area}'")
+        
+        print(f"Usage: {cmd.usage}\n")
+        
+        print(f"Description:\n{cmd.summary}\n")
+
+        # Mostrar Argumentos si existen
+        if hasattr(cmd, 'args') and cmd.args:
+            print("Arguments:")
+            for arg in cmd.args:
+                print(f"    {arg.name:<14} {arg.description}")
+            print()
+
+        # Mostrar Flags si existen
+        if hasattr(cmd, 'flags') and cmd.flags:
+            print("Flags:")
+            for flag in cmd.flags:
+                print(f"    {flag.name:<18} {flag.description}")
+            print()
+            
+        if command_name == "help":
+            print("[ o_O] <(\"Yo Dawg, I heard you like help, so I put some help") 
+            print("         in your help so you can get help while you help!\")\n")
             
         return
     
-    print("Zonetic Programming Language - Usage: zon <command> [arguments]\n")
-    print("Available Commands:")
-    
-    for cmd in sorted(commands.keys()):
-        explanation = commands[cmd]
-        print(f"  {cmd:<10} {explanation}")
+    elif command_name and command_name not in commands:
+        print(f"[zon error]: Command '{command_name}' not found in help.")
+        return
 
-    print("\nUse 'zon help <command>' for more details on a specific action.")
+    # --- MODO GLOBAL (zon help) ---
+    print("Zonetic Programming Language")
+    print("Usage: zon <area> [flags] [arguments]\n")
+
+    # Definimos los nombres amigables de las categorías
+    categories = {
+        "exe": "Execution",
+        "manag": "Management",
+        "sys": "System"
+    }
+
+    for cat_key, cat_name in categories.items():
+        print(f"{cat_name}:")
+        for key, cmd in commands.items():
+            # Solo mostramos los comandos de la categoría actual
+            if cmd.category == cat_key:
+                # Mostramos el alias o nombre principal y el summary
+                print(f"  {cmd.area:<10} {cmd.summary}")
+        print() # Espacio entre categorías
+
+    print("Use 'zon help [area]' to see all available flags and usage examples.")
     
 def cmd_zon_set_path(args):
     new_path = pathlib.Path(args).resolve()
@@ -259,8 +384,8 @@ def cmd_zon_clear_path():
         print(f"[zon error]: Could not clear config file. {e}")
 
 def cmd_zon_set_file(args=None, mode=0):
-    if mode == 0:
-        target_path = pathlib.Path(args)
+    if mode in [0, 4]:
+        target_path = pathlib.Path(args[0])
     
         try:
             if not target_path.parent.exists():
@@ -270,8 +395,13 @@ def cmd_zon_set_file(args=None, mode=0):
         except Exception as e:
             print(f"[zon error]: Could not create directories. {e}")
             return
-    
-        if target_path.suffix != ".zon":
+
+        if mode == 0 and target_path.suffix != ".zon":
+            print("[zon error]: Invalid file extension for Zonetic.")
+            print("-- The forge only works with .zon files. Please ensure your path or filename ends with the correct extension.")
+            return
+
+        if mode == 4 and target_path.suffix != ".zbc":
             print("[zon error]: Invalid file extension for Zonetic.")
             print("-- The forge only works with .zon files. Please ensure your path or filename ends with the correct extension.")
             return
@@ -282,14 +412,22 @@ def cmd_zon_set_file(args=None, mode=0):
         short_eof = "Ctrl+Z and Enter"
     else:
         short_eof = "Ctrl+D"
-    
-    if mode == 1:    
-        print(f"[zon info]: Repl Mode. Type 'EOF' or {short_eof} to end.")
+        
+    endkey = ""
+    if mode in [0, 1]:
+        endkey = args[1]
     else:
-        print(f"[zon info]: Writing to '{target_path.name}'. Type 'EOF' or {short_eof} to save.")
+        endkey = args[1]
+    
+    if mode in [1, 3]:    
+        print(f"[zon info]: Repl Mode. Type '{endkey}' or {short_eof} to end.")
+    else:
+        print(f"[zon info]: Writing to '{target_path.name}'. Type '{endkey}' or {short_eof} to save.")
     
     lines = []
     not_readline = False
+    
+
     if os.name != "nt":
         try:
             history_file = os.path.expanduser("~/.zonhistoryrepl")
@@ -327,7 +465,7 @@ def cmd_zon_set_file(args=None, mode=0):
             try:
                 while True:
                     line = input(">> ").rstrip('\r')
-                    if line.strip().upper() == "EOF":
+                    if line.strip().upper() == endkey:
                         break
                     lines.append(line)
                     readline.add_history(line)
@@ -349,7 +487,7 @@ def cmd_zon_set_file(args=None, mode=0):
         try:
             while True:
                 line = input(">> ").rstrip('\r')
-                if line.strip().upper() == "EOF":
+                if line.strip().upper() == endkey:
                     break
                 lines.append(line)
         except EOFError:
@@ -368,23 +506,51 @@ def cmd_zon_set_file(args=None, mode=0):
         return
 
     try:
-        if mode == 0:
-            with open(target_path, "w", encoding="utf-8", newline='\n') as f:
+        if mode in [0, 4]:
+            with open(target_path.with_suffix(".zon"), "w", encoding="utf-8", newline='\n') as f:
                 f.write("\n".join(lines))
-        
+
+            if mode == 4:
+                cmd_zon_compile(target_path.with_suffix(".zon"))
+                
             print(f"[zon info]: File forged successfully at: {target_path}")
-            confirm = input(f"Do you want to run {target_path.name} now? (y/n): ").lower()
-            
-            while confirm not in ['y', "yes", 'n', "no"]:
-                confirm = input(f"Do you want to run {target_path.name} now? (y/n): ").lower()
-            
-            if confirm in ['y', 'yes']:
-                print(f"--- Executing {target_path.name} ---")
-                cmd_zon_run(target_path)
+            if mode == 0:
+                print("WARNING: old interpreter, It may not have all the new features.")
+                confirm = input(f"Do you want to run {target_path.name} in legacy interpreter now? (y/n): ").lower()
+                
+                while confirm not in ['y', "yes", 'n', "no"]:
+                    confirm = input(f"Do you want to run {target_path.name} now? (y/n): ").lower()
+                
+                if confirm in ['y', 'yes']:
+                    print(f"--- Executing {target_path.name} ---")
+                    cmd_zon_run(target_path)
+
             
         else:
             print("--- Executing ---")
-            cmd_zon_run(code_source="\n".join(lines))
+            if mode == 1:
+                cmd_zon_run(code_source="\n".join(lines))
+            else:
+                cmd_zon_compile(code_source="\n".join(lines), direct_zbc=args[0])
+            
             
     except Exception as e:
         print(f"[zon error]: Failed to save file. {e}")
+
+if __name__ == "__main__":
+    from zonc.zonast import BinaryExpr, UnaryExpr, Operator, IntLiteral
+    from zonc.location_file import Span, FileMap
+    em = Emitter()
+    file_map = FileMap("-(1+1)")
+    expr = UnaryExpr(
+        operator=Operator.NEG,
+        value=BinaryExpr(
+            left=IntLiteral(1, Span(0, 0, file_map)),
+            operator=Operator.ADD,
+            right=IntLiteral(1, Span(0, 0, file_map)),
+            span=Span(0, 0, file_map)
+        ),
+        span=Span(0, 0, file_map)
+    )
+    em.generate(expr)
+    em.save("test")

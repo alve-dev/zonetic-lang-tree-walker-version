@@ -8,52 +8,140 @@ while [ -L "$SOURCE" ]; do
 done 
 DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )" 
 
-REPO_DIR="$(cd "$DIR/.." && pwd)" 
-MAIN_PY="$REPO_DIR/src/zonc/main.py"
+ZONC_DIR="$(cd "$DIR/.." && pwd)" 
+MAIN_PY="$ZONC_DIR/src/zonc/main.py"
 LAUNCHER_FILE="$SOURCE"
+
+VM_DIR="$HOME/.zonetic/.zonvm"
+BINARY_VM="$VM_DIR/zonvm"
+INCLUDE_VM_DIR="$VM_DIR/include"
+SRC_VM_DIR="$VM_DIR/src"
+
+build_vm_if_needed() {
+    if [ ! -f "$BINARY_VM" ]; then
+        echo "[ ⌐■_■] <(\"Building the VM engine at $VM_DIR...\")"
+        if [ ! -d "$SRC_VM_DIR" ]; then
+            echo "[ X_X] <(\"Error: VM source not found at $SRC_VM_DIR\")"
+            exit 1
+        fi
+        g++ -std=c++20 -I"$INCLUDE_VM_DIR" "$SRC_VM_DIR"/*.cpp -o "$BINARY_VM"
+        if [ $? -ne 0 ]; then
+            echo "[ X_X] <(\"Error: Failed to build VM.\")"
+            exit 1
+        fi
+    fi
+}
 
 if [ "$1" == "update" ]; then 
     echo "[ ⌐■_■] <(\"Checking for updates on GitHub...\")" 
+    if [ -d "$ZONC_DIR/.git" ]; then 
+        git -C "$ZONC_DIR" fetch origin main -q 
+        REMOTE_MSG=$(git -C "$ZONC_DIR" log -1 origin/main --pretty=format:%s) 
+        LOCAL_MSG=$(git -C "$ZONC_DIR" log -1 --pretty=format:%s) 
 
-    if [ ! -d "$REPO_DIR/.git" ]; then 
-        echo "[ X_X] <(\"Error: .git directory not found. Cannot update.\")" 
-        exit 1 
+        if [[ "$REMOTE_MSG" != *"[NOSTABLE]"* && "$REMOTE_MSG" != "$LOCAL_MSG" ]]; then 
+            git -C "$ZONC_DIR" reset --hard origin/main -q 
+            chmod +x "$LAUNCHER_FILE"
+            echo "[ ⌐■_■] <(\"Compiler updated: $REMOTE_MSG\")" 
+        else
+            echo "[ ⌐■_■] <(\"Compiler is already up to date.\")"
+        fi
     fi 
 
-    git -C "$REPO_DIR" fetch origin main -q 
+    if [ -d "$VM_DIR/.git" ]; then
+        git -C "$VM_DIR" fetch origin main -q
+        git -C "$VM_DIR" reset --hard origin/main -q
+        rm -f "$BINARY_VM"
+        echo "[ ⌐■_■] <(\"VM updated and marked for rebuild.\")"
+    fi
 
-    REMOTE_MSG=$(git -C "$REPO_DIR" log -1 origin/main --pretty=format:%s) 
-    LOCAL_MSG=$(git -C "$REPO_DIR" log -1 --pretty=format:%s) 
-
-    if [[ "$REMOTE_MSG" == *"[NOSTABLE]"* ]]; then 
-        echo "[ X_X] <(\"Error: Remote version is marked as [NOSTABLE].\")" 
-        echo "[ X_X] <(\"Update aborted to keep your system safe.\")" 
-        exit 1 
-    fi 
-
-    if [[ "$REMOTE_MSG" == "$LOCAL_MSG" ]]; then 
-        echo "[ ⌐■_■] <(\"You are already up to date!\")" 
-        echo "[ ⌐■_■] <(\"Current Version: $LOCAL_MSG\")" 
-        exit 0 
-    fi 
-
-    echo "[ ⌐■_■] <(\"New version found: $REMOTE_MSG\")" 
-    echo "[ ⌐■_■] <(\"Updating now...\")" 
-
-    git -C "$REPO_DIR" reset --hard origin/main -q 
-    chmod +x "$LAUNCHER_FILE"
-
-    echo "[ ⌐■_■] <(\"Update complete! You are now on: $REMOTE_MSG\")" 
     exit 0 
 fi
 
-if [ "$1" == "clrhis" ]; then
+if [[ "$1" == "clr" && "$2" == "--his" ]]; then
     HISTORY_FILE="$HOME/.zonhistoryrepl"
     if [ -f "$HISTORY_FILE" ]; then
         : > "$HISTORY_FILE"
-        echo "[ ⌐■_■] <(\"History cleared! Fresh start, bro.\")"
+        echo "[ ⌐■_■] <(\"History cleared!\")"
     else
-        echo "[ X_X] <(\"History file not found, nothing to clear.\")"
+        echo "[ X_X] <(\"No history found.\")"
+    fi
+    exit 0
+fi
+
+if [[ "$1" == "vw" && "$2" == "--file" ]]; then
+    [ -z "$3" ] && echo "[zon error]: Missing path." && exit 1
+    if [ -f "$3" ]; then cat "$3"; exit 0; else echo "[zon error]: File not found."; exit 1; fi
+fi
+
+if [[ "$1" == "repl" && "$2" != "--in" ]]; then
+    build_vm_if_needed
+    TEMP_ZBC=$(mktemp --suffix=.zbc)
+    trap 'rm -f "$TEMP_ZBC"' EXIT
+
+    if [ -z "$2" ]; then
+        python3 "$MAIN_PY" repl "$TEMP_ZBC"
+    else
+        python3 "$MAIN_PY" repl "$TEMP_ZBC" "$2"
+    fi
+    
+    if [[ $? -eq 0 && -f "$TEMP_ZBC" ]]; then
+        "$BINARY_VM" "$TEMP_ZBC"
+    fi
+    exit 0
+fi
+
+CONFIG_FILE="$HOME/.zonetic_config"
+
+if [ "$1" == "r" ]; then
+    FILE=$2
+    TARGET_PATH=""
+    if [ -f "$FILE" ]; then
+        TARGET_PATH="$FILE"
+    elif [ -f "$CONFIG_FILE" ]; then
+        GLOBAL_DIR=$(cat "$CONFIG_FILE" | xargs)
+        if [ -f "$GLOBAL_DIR/$FILE" ]; then
+            TARGET_PATH="$GLOBAL_DIR/$FILE"
+        fi
+    fi
+
+    if [ -z "$TARGET_PATH" ]; then
+        echo "[ X_X] <(\"Error: File '$FILE' not found locally or in PATH.\")"
+        exit 1
+    fi
+    
+    build_vm_if_needed
+    case "$TARGET_PATH" in
+        *.zbc) "$BINARY_VM" "$TARGET_PATH" ;;
+        *.zon)
+            python3 "$MAIN_PY" c "$TARGET_PATH"
+            if [ $? -eq 0 ]; then
+                BYTECODE="${TARGET_PATH%.zon}.zbc"
+                [ -f "$BYTECODE" ] && "$BINARY_VM" "$BYTECODE" || exit 1
+            fi
+            ;;
+        *) echo "[ X_X] <(\"Invalid extension.\")"; exit 1 ;;
+    esac
+    exit 0
+fi
+
+if [[ "$1" == "st" && "$2" == "--zbc" ]]; then
+    TARGET_PATH="$3"
+    KEYEND="$4"
+    if [[ -z "$TARGET_PATH" ]]; then
+        python3 "$MAIN_PY" st --zbc
+        exit 1
+    fi
+
+    python3 "$MAIN_PY" st --zbc "$TARGET_PATH" "$KEYEND"
+
+    if [ $? -eq 0 ]; then
+        read -p "Do you want to run $(basename "$TARGET_PATH") now? (y/n): " input </dev/tty
+        answer=$(echo "$input" | tr '[:upper:]' '[:lower:]')
+        if [[ "$answer" == "y" || "$answer" == "yes" ]]; then
+            build_vm_if_needed
+            "$BINARY_VM" "$TARGET_PATH"
+        fi
     fi
     exit 0
 fi

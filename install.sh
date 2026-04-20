@@ -43,15 +43,17 @@ check_and_install() {
 
 check_and_install "git" "git"
 check_and_install "python3" "python3"
+check_and_install "g++" "g++"
 
 INSTALL_DIR="$HOME/.zonetic"
+ZONC_DIR="$INSTALL_DIR/.zonc"
+ZONVM_DIR="$INSTALL_DIR/.zonvm"
 
 if [ -d "$INSTALL_DIR" ]; then
     FILE_COUNT=$(ls -A "$INSTALL_DIR" 2>/dev/null | wc -l)
     if [ "$FILE_COUNT" -gt 0 ]; then
         echo "[ ⌐■_■] <(\"Warning: $INSTALL_DIR is not empty ($FILE_COUNT files found).\")"
         read -p "[ ⌐■_■] <(\"Do you want to OVERWRITE its contents? (y/n)\") " choice </dev/tty
-        
         choice=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
 
         if [[ "$choice" != "y" && "$choice" != "n" ]]; then
@@ -67,33 +69,32 @@ if [ -d "$INSTALL_DIR" ]; then
         if [[ "$choice" == "y" ]]; then
             echo "[ ⌐■_■] <(\"Cleaning directory...\")"
             rm -rf "${INSTALL_DIR:?}"/*
-            rm -rf "${INSTALL_DIR:?}"/.* 2>/dev/null
         else
             echo "[ ⌐■_■] <(\"Installation cancelled by user.\")"
             exit 0
         fi
     fi
-else
-    mkdir -p "$INSTALL_DIR" > /dev/null 2>&1
 fi
 
-cd "$INSTALL_DIR" || exit
+mkdir -p "$ZONC_DIR" "$ZONVM_DIR" > /dev/null 2>&1
 
-if [ ! -d ".git" ]; then
-    git init -q
-    git remote add origin https://github.com/alve-dev/zonetic-lang-tree-walker-version.git 2>/dev/null || \
-    git remote set-url origin https://github.com/alve-dev/zonetic-lang-tree-walker-version.git
-    
-    git config core.sparseCheckout true
-    echo "src/zonc/*" > .git/info/sparse-checkout
-    echo "scripts/*" >> .git/info/sparse-checkout
-    echo ".gitignore" >> .git/info/sparse-checkout
-fi
-
-echo "[ ⌐■_■] <(\"Syncing with GitHub repository...\")"
+echo "[ ⌐■_■] <(\"Syncing Compiler (Zonc) with GitHub...\")"
+cd "$ZONC_DIR" || exit
+git init -q
+git remote add origin https://github.com/alve-dev/zonetic-lang-tree-walker-version.git 2>/dev/null
+git config core.sparseCheckout true
+echo "src/zonc/*" > .git/info/sparse-checkout
+echo "scripts/*" >> .git/info/sparse-checkout
+echo ".gitignore" >> .git/info/sparse-checkout
 git pull origin main --rebase -q
 
-LAUNCHER_PATH="$INSTALL_DIR/scripts/zon_launcher.sh"
+echo "[ ⌐■_■] <(\"Syncing VM (ZonVM) with GitHub...\")"
+cd "$ZONVM_DIR" || exit
+git init -q
+git remote add origin https://github.com/alve-dev/zonetic-vm.git 2>/dev/null
+git pull origin main -q
+
+LAUNCHER_PATH="$ZONC_DIR/scripts/zon_launcher.sh"
 
 if [ -f "$LAUNCHER_PATH" ]; then
     chmod +x "$LAUNCHER_PATH"
@@ -105,5 +106,5 @@ else
 fi
 
 echo "------------------------------------------------"
-echo "[ ⌐■_■] <(\"Zonetic installed successfully!\")"
-echo "[ ⌐■_■] <(\"Try running: zon vers\")"
+echo "[ ⌐■_■] <(\"Zonetic v2.0.0 installed successfully!\")"
+echo "[ ⌐■_■] <(\"Try running: zon vw --vers\")"

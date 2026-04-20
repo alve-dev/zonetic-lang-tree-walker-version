@@ -3,113 +3,69 @@
   <img src="./assets/icons/svg/icon_zonetic.svg" width="300">
 </picture>
 
-# Zonetic Programming Language — Tree-Walker
+# Zonetic Programming Language
 
 ## What this project demonstrates
 
-Zonetic is not just a programming language — it showcases practical experience in:
+Zonetic is a systems-oriented programming language that showcases expertise in:
 
-- Building CLI tools with real command systems (`zon`)
-- Creating cross-platform installers (.sh, .ps1)
-- Automating environment setup (PATH, execution flow)
-- Designing structured and scalable software systems
+- **Compiler Design:** Implementing a full pipeline from lexing to bytecode generation.
+- **Virtual Machine Architecture:** Designing a custom RISC-inspired execution engine (ZonVM).
+- **Tooling & Infrastructure:** Building cross-platform CLI tools and automated installers.
+- **Low-level logic:** Handling register allocation, memory layout, and binary formats.
 
-These are the same skills I use to build automation scripts, CLI tools, and developer utilities.
-
-A statically typed, expression-oriented language designed for robotics.
-
-> **This repository contains the tree-walker interpreter version of Zonetic.** > The bytecode VM version will live in a separate repository once development begins.
+A statically typed, expression-oriented language designed for robotics and performance-critical applications.
 
 ## Status
 
-> `v0.1.6` — The Fashionable Update release. 
-> **Coming Soon:** Now new updates will go to the VM version -> [here](https://github.com/alve-dev/zonetic-lang-vm)
+> **Current Version:** `v2.0.0` — *The First Step To VM 2.0.0* > **Next Milestone:** `v2.1.0` — *TBD*
 
 ## Features
 
-- **Multi-platform CLI** — Native support for Linux, Windows, and Android (Termux).
+- **Bytecode Compilation:** Compiles high-level code into optimized binary instructions for ZonVM.
+- **Hybrid Execution:** Integrated REPL with support for both Bytecode VM and Legacy Interpreter (`--in` mode).
 - **Explicit mutability** with `mut` / `inmut`.
 - **Form-based control flow** — `if form`, `while form`, `infinity form`.
-- **Block expressions** with `give`.
-- **Functions** with typed parameters, keyparams, and default values.
-- **Structs** with field access, construct expressions, and nested objects.
-- **Initialization Shadowing** — Reuse variable names during initialization.
-- **Numeric Underscores** — Strict support for readable numbers (`1_000_000`).
-- **Rust-inspired error reporting** with spans and Zonny.
-- **Hybrid statement terminators** — `;` or newline.
-- **Type inference** from first assignment.
+- **Rust-inspired error reporting** with source spans and Zonny.
+- **Register-based ABI:** Sophisticated register management (Saved vs. Temporals).
+- **Type inference** and strict numeric formatting (`1_000_000`).
 
-## Quick Look
+## Pipeline
+
+The compilation flow follows a modern structured pipeline:
 
 ```
--| while form |-
-mut i: int = 0
-while i < 3 {
-    i += 1
-}
-
--| if form |-
-if i == 1 {
-    print("one")
-} elif i == 2 {
-    print("two")
-} else {
-    print("three")
-}
-
--| func form |-
-func greet(inmut name: string) -> void {
-    print("Hello, ", name)
-}
-
-greet("Zonetic")
-
--| struct form |-
-struct Point {
-    mut x: int = 0
-    mut y: int = 0
-}
-
-mut p = Point[3, 7]
-print("x: ", p.x, " y: ", p.y)
+launcher → cli → lexer → normalizer → parser → semantic → bytecodegen → ZonVM
 ```
 
-**Terminal execution:**
+Each phase generates indexed error codes for precise debugging:
+- `E0xxx`: Lexer
+- `E1xxx`: Normalizer
+- `E2xxx`: Parser
+- `E3xxx`: Semantic / Type Checker
+- `E5xxx`: Emitter (Bytecode Generation)
+
+## Quick Look (Legacy Interpreter Mode)
+
+Current development focuses on the VM backend. To test high-level features like Structs and Strings, use the legacy interpreter:
+
 ```bash
-ZoneticDev ~/ zon r quick_look.zon
---- Executing ---
-three
-Hello, Zonetic
-x: 3 y: 7
+zon repl --in
+>> print("Hello from Legacy Mode")
 ```
 
 ## Documentation
 
 > Full language documentation → [zonetic-official-docs](https://github.com/alve-dev/zonetic-official-docs)
 
-## Pipeline run file
-```
-launcher → cli -> lexer → normalizer → parser → semantic → interpreter
-```
-
-Each phase has its own indexed error codes — `E0xxx` lexer, `E1xxx` normalizer, `E2xxx` parser, `E3xxx` semantic, `E4xxx` runtime.
-
-## Logo
-
-The Zonetic logo is available in both SVG and PNG formats.
-
-- **SVG** — vector format, scales to any size. Available in [assets/icons/svg](assets/icons/svg).  
-  > On mobile, SVG files may require a dedicated app to open. If your device does not support SVG natively, any vector graphics viewer will work.
-- **PNG** — raster format, works everywhere. Available in [assets/icons/png/](assets/icons/png/) in multiple sizes.
-
 ## Installation
 
-Choose your operating system:
+Zonetic 2.0.0 uses a modular installation. The compiler and VM are synchronized automatically by the installer.
 
 * **Linux:** [Installation Guide for Linux](./install_guides/INSTALL_LINUX.md)
-* **Windows:** [Installation Guide for Windows](./install_guides/INSTALL_WINDOWS.md)
-* **macOS:** *Coming soon (Testing in progress)*
+* **Windows (MinGW):** [Installation Guide for Windows](./install_guides/INSTALL_WINDOWS.md)
 * **Android:** [Installation Guide for Android](./install_guides/INSTALL_ANDROID.md)
+* **macOS:** *Coming soon (Testing in progress)*
 
 ![Language](https://img.shields.io/badge/written%20in-Python-yellow)
-[![Version](https://img.shields.io/badge/version-0--1--6-orange)](changelog.md)
+[![Version](https://img.shields.io/badge/version-2--0--0-orange)](changelog.md)
