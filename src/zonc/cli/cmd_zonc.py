@@ -529,21 +529,3 @@ def cmd_zon_set_file(args=None, mode=0):
             
     except Exception as e:
         print(f"[zon error]: Failed to save file. {e}")
-
-if __name__ == "__main__":
-    from zonc.zonast import BinaryExpr, UnaryExpr, Operator, IntLiteral
-    from zonc.location_file import Span, FileMap
-    em = Emitter()
-    file_map = FileMap("-(1+1)")
-    expr = UnaryExpr(
-        operator=Operator.NEG,
-        value=BinaryExpr(
-            left=IntLiteral(1, Span(0, 0, file_map)),
-            operator=Operator.ADD,
-            right=IntLiteral(1, Span(0, 0, file_map)),
-            span=Span(0, 0, file_map)
-        ),
-        span=Span(0, 0, file_map)
-    )
-    em.generate(expr)
-    em.save("test")
