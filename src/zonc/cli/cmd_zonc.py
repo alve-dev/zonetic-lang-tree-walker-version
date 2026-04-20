@@ -9,13 +9,13 @@ from zonc.utils import print_ast, print_tokens
 import pathlib
 import os
 from zonc.utils import Chronometer
-import readline
-import atexit
 from zonc.bytecodegen import *
 
 if os.name == 'nt':
     CONFIG_FILE = pathlib.Path(os.environ.get('USERPROFILE', pathlib.Path.home())) / ".zonconfig"
 else:
+    import readline
+    import atexit
     CONFIG_FILE = pathlib.Path.home() / ".zonconfig"
     
 KEYWORDS = {
@@ -292,7 +292,6 @@ def cmd_zon_version():
     print("         I’m like a digital nomad, but without the expensive coffee...\")")
     
 def cmd_zon_help(command_name: str = None, commands=None):
-    # --- MODO ESPECÍFICO (zon help <command>) ---
     if command_name and command_name in commands:
         cmd = commands[command_name]
         if command_name == "help":
@@ -304,14 +303,12 @@ def cmd_zon_help(command_name: str = None, commands=None):
         
         print(f"Description:\n{cmd.summary}\n")
 
-        # Mostrar Argumentos si existen
         if hasattr(cmd, 'args') and cmd.args:
             print("Arguments:")
             for arg in cmd.args:
                 print(f"    {arg.name:<14} {arg.description}")
             print()
 
-        # Mostrar Flags si existen
         if hasattr(cmd, 'flags') and cmd.flags:
             print("Flags:")
             for flag in cmd.flags:
@@ -328,11 +325,9 @@ def cmd_zon_help(command_name: str = None, commands=None):
         print(f"[zon error]: Command '{command_name}' not found in help.")
         return
 
-    # --- MODO GLOBAL (zon help) ---
     print("Zonetic Programming Language")
     print("Usage: zon <area> [flags] [arguments]\n")
 
-    # Definimos los nombres amigables de las categorías
     categories = {
         "exe": "Execution",
         "manag": "Management",
@@ -342,11 +337,9 @@ def cmd_zon_help(command_name: str = None, commands=None):
     for cat_key, cat_name in categories.items():
         print(f"{cat_name}:")
         for key, cmd in commands.items():
-            # Solo mostramos los comandos de la categoría actual
             if cmd.category == cat_key:
-                # Mostramos el alias o nombre principal y el summary
                 print(f"  {cmd.area:<10} {cmd.summary}")
-        print() # Espacio entre categorías
+        print()
 
     print("Use 'zon help [area]' to see all available flags and usage examples.")
     
