@@ -18,7 +18,7 @@ A statically typed, expression-oriented language designed for robotics and perfo
 
 ## Status
 
-> **Current Version:** `v2.1.0` — *The Ascension Logic Update* > **Next Milestone:** `v2.2.0` — *The 64 bits Update*
+> **Current Version:** `v2.2.0` — *The 64-bit Update* > **Next Milestone:** `v2.3.0` — *N/A*
 
 ## Features
 
@@ -68,4 +68,4 @@ Zonetic 2.0.0 uses a modular installation. The compiler and VM are synchronized 
 * **macOS:** *Coming soon (Testing in progress)*
 
 ![Language](https://img.shields.io/badge/written%20in-Python-yellow)
-[![Version](https://img.shields.io/badge/version-2--0--0-orange)](changelog.md)
+[![Version](https://img.shields.io/badge/version-2--2--0-orange)](changelog.md)

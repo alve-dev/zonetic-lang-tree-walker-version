@@ -119,6 +119,10 @@ class Lexer:
                     )
                 )
                 self._advance(2)
+                
+            case '/':
+                while not self._is_end() and not self._peek(0) == '\n':
+                    self._advance(1)
             
             case _:
                 self._match_next(
@@ -331,13 +335,13 @@ class Lexer:
         self._advance(1)
         is_float = False
         is_error = False
-        digit_sequence = 0
+        digit_sequence = 1
         is_separate = False
         
         while not self._is_end():
             if self._peek(0).isdigit():
-                if digit_sequence > 3:
-                    while self._peek(0).isdigit() or self._peek(0) == '_' and (not self._is_end()):
+                if is_separate and digit_sequence >= 3:
+                    while self._peek(0).isdigit() or self._peek(0) == '_':
                         self._advance(1)
                             
                     span_error = Span(start_position, self._position, self._file_map)
@@ -348,9 +352,7 @@ class Lexer:
                     is_error = True
                     break
                 
-                if is_separate:
-                    digit_sequence += 1
-            
+                digit_sequence += 1
                 numero_completo.append(self._peek(0))
                 self._advance(1)
             
@@ -402,6 +404,7 @@ class Lexer:
                     break
                 
                 is_separate = True
+                digit_sequence = 0
                 self._advance(1)
                 
             elif self._peek(0).isalpha() or self._peek(0) == '_':

@@ -96,7 +96,7 @@ if [[ "$1" == "repl" && "$2" != "--in" ]]; then
         python3 "$MAIN_PY" repl "$TEMP_ZBC" "$2"
     fi
     
-    if [[ $? -eq 0 && -f "$TEMP_ZBC" ]]; then
+    if [[ $? -eq 0 && -s "$TEMP_ZBC" ]]; then
         "$BINARY_VM" "$TEMP_ZBC"
     fi
     exit 0
@@ -138,15 +138,21 @@ fi
 
 if [[ "$1" == "st" && "$2" == "--zbc" ]]; then
     TARGET_PATH="$3"
-    KEYEND="$4"
+    KEYEND=""
     if [[ -z "$TARGET_PATH" ]]; then
         python3 "$MAIN_PY" st --zbc
         exit 1
     fi
 
+    if [ -z "$4" ]; then
+        KEYEND="EOF"
+    else
+        KEYEND="$4"
+    fi
+
     python3 "$MAIN_PY" st --zbc "$TARGET_PATH" "$KEYEND"
 
-    if [ $? -eq 0 ]; then
+    if [ -f "$TARGET_PATH" ]; then
         read -p "Do you want to run $(basename "$TARGET_PATH") now? (y/n): " input </dev/tty
         answer=$(echo "$input" | tr '[:upper:]' '[:lower:]')
         if [[ "$answer" == "y" || "$answer" == "yes" ]]; then
@@ -156,6 +162,22 @@ if [[ "$1" == "st" && "$2" == "--zbc" ]]; then
     fi
     exit 0
 fi
+
+if [ "$1" == "rebuild" ]; then
+    echo "[ ⌐■_■] <(\"Forcing VM rebuild...\")"
+    if [ -f "$BINARY_VM" ]; then
+        rm -f "$BINARY_VM"
+        echo "[ ⌐■_■] <(\"Old binary removed.\")"
+    fi
+
+    build_vm_if_needed
+
+    if [ $? -eq 0 ]; then
+        echo "[ ⌐■_■] <(\"VM rebuilt successfully!\")"
+    fi
+    exit 0
+fi
+
 
 if [ -f "$MAIN_PY" ]; then 
     python3 "$MAIN_PY" "$@" 

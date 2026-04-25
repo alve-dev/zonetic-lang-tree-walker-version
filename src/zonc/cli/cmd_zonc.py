@@ -114,7 +114,7 @@ def cmd_zon_run(rute_script: str = " ", cmd: str = "run", code_source: str = Non
             return
         
         if tokens._len() < 2:
-            print(f"Zonetic Compiler Message: The file `{name_file}` has nothing important to parse")
+            print(f"[zon note]: The file `{name_file}` has nothing important to parse")
             return
         
         # Normalizer
@@ -247,7 +247,7 @@ def cmd_zon_compile(rute_script: str = " ", code_source: str = None, direct_zbc:
         return
     
     if tokens._len() < 2:
-        print(f"Zonetic Compiler Message: The file `{name_file}` has nothing important to parse")
+        print(f"[zon note]: The file `{name_file}` has nothing important to parse")
         return
     
     # Normalizer
@@ -281,7 +281,7 @@ def cmd_zon_compile(rute_script: str = " ", code_source: str = None, direct_zbc:
         em.generate_stmt(stmt)
         
     # emitir halt por ecall, con numero 10 en registro 17 que es exit
-    em.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 17, 0x0, 10)
+    em.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 17, 0x0, 93)
     em.emit_ecall()
     
     if direct_zbc is None:
@@ -400,7 +400,7 @@ def cmd_zon_set_file(args=None, mode=0):
 
         if mode == 4 and target_path.suffix != ".zbc":
             print("[zon error]: Invalid file extension for Zonetic.")
-            print("-- The forge only works with .zon files. Please ensure your path or filename ends with the correct extension.")
+            print("-- The forge only works with .zbc files. Please ensure your path or filename ends with the correct extension.")
             return
 
     

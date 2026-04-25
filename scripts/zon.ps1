@@ -15,7 +15,7 @@ function Build-VmIfNeeded {
             exit 1
         }
         
-        g++ -g -std=c++20 -I"$IncludeVmDir" "$SrcVmDir\*.cpp" -o "$BinaryVm"
+        g++ -std=c++20 -I"$IncludeVmDir" "$SrcVmDir\*.cpp" -o "$BinaryVm"
         
         if ($LASTEXITCODE -ne 0) {
             Write-Host "[ X_X] <(`"Error: Failed to build VM.`")" -ForegroundColor Red
@@ -132,14 +132,21 @@ if ($args[0] -eq "r") {
 
 if ($args[0] -eq "st" -and $args[1] -eq "--zbc") {
     $TargetPath = $args[2]
+    $KeyEnd = ""
     if (!$TargetPath) {
         python "$MainPy" st --zbc
         exit 1
     }
 
+    if (!$args[3]) {
+        $KeyEnd="EOF"
+    } else {
+        $KeyEnd=$args[3]
+    }
+
     python "$MainPy" st --zbc $args[2..$args.Count]
     
-    if ($LASTEXITCODE -eq 0) {
+    if (Test-Path -Path "$TargetPath" -PathType Leaf) {
         $Ans = Read-Host "Do you want to run $(Split-Path $TargetPath -Leaf) now? (y/n)"
         if ($Ans.ToLower() -eq "y" -or $Ans.ToLower() -eq "yes") {
             Build-VmIfNeeded

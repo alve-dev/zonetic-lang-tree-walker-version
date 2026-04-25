@@ -3,6 +3,8 @@ from enum import IntEnum
 class OpCode(IntEnum):
     OP_IMM = 0x13
     OP = 0x33
+    LUI = 0x37
+    OP_F = 0x53
     OP_B = 0x63
     JAL = 0x6F
     ECALL = 0x73
@@ -32,5 +34,13 @@ class F3_B(IntEnum):
 class F7(IntEnum):
     STANDARD = 0x00
     M_EXT = 0x01
+    FSUB_S = 0x04
+    FMUL_S = 0x08
+    FDIV_S = 0x0C
+    FSGNJ_S = 0x10
     ALT = 0x20
+    FCOMP_S = 0x50
+    FCVT_S_W = 0x68
+    FMV_W_X = 0x78
+    
     

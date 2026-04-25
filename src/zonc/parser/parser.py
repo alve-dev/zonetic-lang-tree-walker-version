@@ -428,6 +428,7 @@ class Parser:
         if isinstance(block_expr, ErrorNode): return block_expr
         
         if_branch = IfBranch(cond, Span(start, block_expr.span.end, self.file_map), block_expr)
+        if self.check(TokenType.SEMICOLON): self.advance()
         
         while self.check(TokenType.KEYWORD_ELIF):
             token_elif = self.tokens._peek(self.position)
@@ -438,7 +439,9 @@ class Parser:
             
             elif_branches.append(IfBranch(cond_elif, Span(token_elif._span.start, block_elif.span.end, self.file_map), block_elif))
             len_branch += 1
-                
+            if self.check(TokenType.SEMICOLON): self.advance()
+            
+        if self.check(TokenType.SEMICOLON): self.advance()
         if self.check(TokenType.KEYWORD_ELSE):
             token_else = self.tokens._peek(self.position)
             self.advance()

@@ -763,7 +763,7 @@ class Semantic:
             
             elif op in (Operator.EQ, Operator.NE):
                 op_str = {Operator.EQ: '==', Operator.NE: '!='}[op]
-                return self.check_operands_type(((left_type, expr.left.span), (right_type, expr.right.span)), ZonType(3, "bool"), True, op_str, ZonType(1, "int"), ZonType(2, "float"), ZonType(3, "bool"), ZonType(4, "string"))
+                return self.check_operands_type(((left_type, expr.left.span), (right_type, expr.right.span)), ZonType(3, "bool"), True, op_str, ZonType(1, "int"), ZonType(2, "float"), ZonType(3, "bool"))
                 
         elif isinstance(expr, UnaryExpr):
             op = expr.operator
