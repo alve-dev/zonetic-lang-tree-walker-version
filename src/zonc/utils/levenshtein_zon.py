@@ -1,9 +1,7 @@
 def get_distance(s1, s2):
-    # Si una es mucho más larga que otra, ni lo intentamos
     if abs(len(s1) - len(s2)) > 2: 
         return 10 
     
-    # Creamos una matriz simple (puro minimalismo)
     if len(s1) < len(s2):
         return get_distance(s2, s1)
 
@@ -22,7 +20,7 @@ def get_distance(s1, s2):
     
     return previous_row[-1]
 
-def suggest_command(user_input, valid_commands, min_dist = 8):
+def suggest_command(user_input, valid_commands, min_dist = 5):
     best_match = None
 
     for cmd in valid_commands:

@@ -8,15 +8,16 @@ class RegT(Enum):
     
 @dataclass
 class ZonVar:
-    reg: int
-    regt: RegT
+    reg: int | None
+    regt: RegT | None
     zontype: ZonType
+    offset_stack: int | None = None
 
 class SymbolTable:
     def __init__(self):
         self.scopes: list[dict[str, ZonVar]] = [{}]
-        self.saved = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
-        self.fsaved = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+        self.saved = [9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+        self.fsaved = [8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
 
     def enter_scope(self):
         self.scopes.append({})
@@ -36,9 +37,9 @@ class SymbolTable:
                 self.scopes[-1][name] = ZonVar(r, RegT.X, zontype)
                 return r
                 
-        raise Exception(f"Error de registros: No quedan registros 's' disponibles para '{name}'")
+        return None
     
-    def define_f(self, name):
+    def define_f(self, name, zontype):
         used_registers = set()
         for scope in self.scopes:
             for var in scope.values():
@@ -47,17 +48,15 @@ class SymbolTable:
 
         for r in self.fsaved:
             if r not in used_registers:
-                self.scopes[-1][name] = ZonVar(r, RegT.F, ZonType(2, "float"))
+                self.scopes[-1][name] = ZonVar(r, RegT.F, zontype)
                 return r
                 
-        raise Exception(f"Error de registros: No quedan registros 'fs' disponibles para '{name}'")
+        return None
         
     def resolve(self, name):
         for scope in reversed(self.scopes):
             if name in scope:
                 return scope.get(name)
-            
-        raise Exception(f"Variable {name} no definida")
     
     def delete_symbol(self, name):
         del self.scopes[-1][name]

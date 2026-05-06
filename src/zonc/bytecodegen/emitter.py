@@ -26,7 +26,8 @@ ConstantLoad = namedtuple("ConstantLoad", ["rd", "rd_int", "pool_offset", "is_fl
 class Emitter:
     def __init__(self):
         self.code = []
-        self.reg_manager = RegisterManager()
+        self.offset_stack = []
+        self.reg_manager = RegisterManager(self.offset_stack)
         self.symbol_table = SymbolTable()
         self.label_manager = LabelManger()
         self.loop_stack = []
@@ -53,6 +54,19 @@ class Emitter:
         funct7 &= 0x7F
         opcode &= 0x7F
         inst: int = (funct7 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (rd << 7) | opcode
+        self.code.append(inst.to_bytes(4, "little"))
+        
+    def emit_s(self, opcode, funct3, rs1, rs2, imm):
+        opcode &= 0x7F
+        funct3 &= 0x7
+        rs1 = self._unwrap(rs1) & 0x1F
+        rs2 = self._unwrap(rs2) & 0x1F
+        imm &= 0xFFF
+        
+        imm_11_5 = (imm >> 5) & 0x7F
+        imm_4_0 = imm & 0x1F
+        
+        inst = (imm_11_5 << 25) | (rs2 << 20) | (rs1 << 15) | (funct3 << 12) | (imm_4_0 << 7) | opcode
         self.code.append(inst.to_bytes(4, "little"))
         
     def emit_i_type(self, opcode, funct3, rd, rs1, imm):
@@ -123,6 +137,7 @@ class Emitter:
             pool_start_pos = len(self.code) * 4
             
             for i, inst in enumerate(self.code):
+                print(inst)
                 if inst == "DUMMY":
                     continue
                 
@@ -177,7 +192,7 @@ class Emitter:
         pool_offset = self.add_to_pool(bits)
         reg_addr = self.reg_manager.alloc_temp()
         
-        self.code.append(ConstantLoad(rd=reg, rd_int=reg_addr.reg, pool_offset=pool_offset, is_float=True))
+        self.code.append(ConstantLoad(rd=self._unwrap(reg), rd_int=reg_addr.reg, pool_offset=pool_offset, is_float=True))
         self.code.append("DUMMY") 
         
         self.reg_manager.free_temp(reg_addr)
@@ -208,34 +223,92 @@ class Emitter:
         
         self.emit_u_type(OpCode.LUI, reg, high)
         self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, reg, reg, low)
+    
+    def analyze_block_storage(self, stmts):
+        seen_ints = set()
+        seen_floats = set()
+        
+        for node in stmts:
+            if isinstance(node, DeclarationStmt):
+                if node.type.num in [1, 3, 6] and node.name not in seen_ints:
+                    seen_ints.add(node.name)
+                elif node.type.num == [2, 7] and node.name not in seen_floats:
+                    seen_floats.add(node.name)
+                    
+            elif isinstance(node, InitializationStmt):
+                if node.decl_stmt.type.num in [1, 3, 6] and node.decl_stmt.name not in seen_ints:
+                    seen_ints.add(node.decl_stmt.name)
+                    
+                elif node.decl_stmt.type.num == [2, 7] and node.decl_stmt.name not in seen_floats:
+                    seen_floats.add(node.decl_stmt.name)
+                    
+        return len(seen_ints), len(seen_floats)     
+        
+    def emit_preamble(self, stmts):
+        num_ints, num_floats = self.analyze_block_storage(stmts)
+        
+        extra_ints = max(0, num_ints - 11)
+        extra_floats = max(0, num_floats - 12)
+        
+        bytes_needed = ((extra_ints + extra_floats) * 8) + 16
+        if bytes_needed % 16 != 0:
+            bytes_needed += (16 - (bytes_needed % 16))
+
+        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 2, 2, -bytes_needed)
+        self.emit_s(OpCode.OP_S, F3_S.SD, 2, 8, bytes_needed - 8)
+        
+        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 8, 2, bytes_needed)
+        self.offset_stack.append(-16)
+        
+    def epilogue(self):
+        bytes_reserved = self.offset_stack[-1]
+        self.emit_i_type(OpCode.L, F3_L.LD, 8, 2, bytes_reserved - 8)
+        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 2, 2, bytes_reserved)
         
     def generate_stmt(self, node):
         match node:
             case DeclarationStmt():
-                self.symbol_table.define(node.name, node.type)
+                reg = self.symbol_table.define(node.name, node.type)
+                if reg is None:
+                    zonvar = ZonVar(None, None, node.type, self.offset_stack[-1])
+                    self.offset_stack[-1] -= 8
+                    self.symbol_table.scopes[-1].update({node.name: zonvar})
                 
             case AssignmentStmt():
                 reg = self.symbol_table.resolve(node.name)
-                if isinstance(node.value, (IntLiteral, BoolLiteral)):
-                    self.generate_literal_num(node.value.value, reg)
-                    return
-                
-                elif isinstance(node.value, FloatLiteral):
-                    self.symbol_table.delete_symbol(node.name)
-                    reg = self.symbol_table.define_f(node.name)
-                    self.generate_literal_f(node.value.value, reg)
-                    return
-                
-                reg_value = self.generate_expr(node.value, reg.zontype.num)
-                if reg_value.regt == RegT.X:
-                    self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, reg, reg_value, 0)
+                if reg.reg is not None:
+                    if isinstance(node.value, (IntLiteral, BoolLiteral)):
+                        self.generate_literal_num(node.value.value, reg)
+                        return
                     
-                elif reg_value.regt == RegT.F:
-                    self.symbol_table.delete_symbol(node.name)
-                    reg = self.symbol_table.define_f(node.name)
-                    self.emit_f_type(OpCode.OP_F, reg, reg_value, reg_value, 0x00, F7.FSGNJ_S)
+                    elif isinstance(node.value, FloatLiteral):
+                        self.symbol_table.delete_symbol(node.name)
+                        reg = self.symbol_table.define_f(node.name, ZonType(7, "double"))
+                        self.generate_literal_f(node.value.value, reg)
+                        return
                     
-                self.reg_manager.free_temp(reg_value)
+                    reg_value = self.generate_expr(node.value, reg.zontype.num)
+                    if reg_value.regt == RegT.X:
+                        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, reg, reg_value, 0)
+                        
+                    elif reg_value.regt == RegT.F:
+                        symbol = self.symbol_table.resolve(node.name)
+                        self.symbol_table.delete_symbol(node.name)
+                        reg = self.symbol_table.define_f(node.name, symbol.zontype)
+                        self.emit_f_type(OpCode.OP_F, reg, reg_value, reg_value, 0x00, F7.FSGNJ_S)
+                        
+                    self.reg_manager.free_temp(reg_value)
+                else:
+                    offset = reg.offset_stack
+                    reg_value = self.generate_expr(node.value, reg.zontype.num)
+                    
+                    if reg_value.regt == RegT.X:
+                        self.emit_s(OpCode.OP_S, F3_S.SD, 8, reg_value, offset)
+                        
+                    elif reg_value.regt == RegT.F:
+                        self.emit_s(OpCode.OP_FS, F3_S.SD, 8, reg_value, offset)
+                        
+                    self.reg_manager.free_temp(reg_value)
                 
             case InitializationStmt():
                 reg_value = 0
@@ -246,27 +319,51 @@ class Emitter:
                 if self.symbol_table.exists_here(node.decl_stmt.name):
                     real_reg = self.symbol_table.resolve(node.decl_stmt.name)
                 else:
-                    real_reg = self.symbol_table.define(node.decl_stmt.name, node.decl_stmt.type)
+                    match node.decl_stmt.type.num:
+                        case 1 | 3 | 6:
+                            real_reg = self.symbol_table.define(node.decl_stmt.name, node.decl_stmt.type)
+                            
+                        case 2 | 7:
+                            real_reg = self.symbol_table.define_f(node.decl_stmt.name, node.decl_stmt.type)
+                    
+                print(self.symbol_table.scopes)
                 
-                if reg_value != 0:
+                if real_reg is not None:
+                    if reg_value != 0:
+                        if reg_value.regt == RegT.X:
+                            self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, real_reg, reg_value, 0)
+                        elif reg_value.regt == RegT.F:
+                            self.symbol_table.delete_symbol(node.decl_stmt.name)
+                            real_reg = self.symbol_table.define_f(node.decl_stmt.name, node.decl_stmt.type)
+                            self.emit_f_type(OpCode.OP_F, real_reg, reg_value, reg_value, 0x00, F7.FSGNJ_S)
+                            
+                        self.reg_manager.free_temp(reg_value)
+            
+                    else:
+                        if isinstance(node.assign_stmt.value, (IntLiteral, BoolLiteral)):
+                            self.generate_literal_num(node.assign_stmt.value.value, real_reg)
+                            
+                        else:
+                            self.symbol_table.delete_symbol(node.decl_stmt.name)
+                            real_reg = self.symbol_table.define_f(node.decl_stmt.name, node.decl_stmt.type)
+                            self.generate_literal_f(node.assign_stmt.value.value, real_reg)
+                            
+                else:
+                    zonvar = ZonVar(None, None, node.decl_stmt.type, self.offset_stack[-1])
+                    self.offset_stack[-1] -= 8
+                    self.symbol_table.scopes[-1].update({node.decl_stmt.name: zonvar})
+                    real_reg = self.symbol_table.resolve(node.decl_stmt.name)
+                    offset = self.offset_stack[-1] + 8
+                    reg_value = self.generate_expr(node.assign_stmt.value, node.decl_stmt.type.num)
+                    
                     if reg_value.regt == RegT.X:
-                        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, real_reg, reg_value, 0)
+                        self.emit_s(OpCode.OP_S, F3_S.SD, 8, reg_value, offset)
+                        
                     elif reg_value.regt == RegT.F:
-                        self.symbol_table.delete_symbol(node.decl_stmt.name)
-                        real_reg = self.symbol_table.define_f(node.decl_stmt.name)
-                        self.emit_f_type(OpCode.OP_F, real_reg, reg_value, reg_value, 0x00, F7.FSGNJ_S)
+                        self.emit_s(OpCode.OP_FS, F3_S.SD, 8, reg_value, offset)
                         
                     self.reg_manager.free_temp(reg_value)
-        
-                else:
-                    if isinstance(node.assign_stmt.value, (IntLiteral, BoolLiteral)):
-                        self.generate_literal_num(node.assign_stmt.value.value, real_reg)
-                        
-                    else:
-                        self.symbol_table.delete_symbol(node.decl_stmt.name)
-                        real_reg = self.symbol_table.define_f(node.decl_stmt.name)
-                        self.generate_literal_f(node.assign_stmt.value.value, real_reg)
-                    
+
             case CallFunc():
                 if node.name == "print":
                     if isinstance(node.params[0], BoolLiteral):
@@ -302,11 +399,10 @@ class Emitter:
                         
                         elif isinstance(node.params[0], VariableExpr):
                             match reg_param.zontype.num:
-                                
-                                case 1:
+                                case 1 | 6:
                                     self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 10, reg_param, 0)
                                     self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 17, 0x0, 1000)
-                                case 2:
+                                case 2 | 7:
                                     self.emit_f_type(OpCode.OP_F, 10, reg_param, reg_param, 0x0, F7.FSGNJ_S)
                                     self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 17, 0x0, 1001)
                                 case 3:
@@ -319,9 +415,11 @@ class Emitter:
                     
             case BlockExpr():
                 self.symbol_table.enter_scope()
+                self.emit_preamble(node.stmts)
                 for stmt in node.stmts:
                     self.generate_stmt(stmt)
-                self.symbol_table.exit_scope()  
+                self.symbol_table.exit_scope()
+                self.epilogue()
                             
             case IfForm():
                 exit = self.label_manager.create()
@@ -380,8 +478,26 @@ class Emitter:
                 self.emit_jump(self.loop_stack[-1][0])
                 
             case GiveStmt():
-                return self.generate_expr(node.value)
-                       
+                temp: ZonVar = self.generate_expr(node.value)
+                if temp.reg is None:
+                    if temp.regt == RegT.X:
+                        self.emit_i_type(OpCode.L, F3_L.LD, 10, 2, temp.offset_stack)
+                        return ZonVar(10, RegT.X, None, None)
+                    
+                    else:
+                        self.emit_i_type(OpCode.FL, F3_L.FLD, 10, 2, temp.offset_stack)
+                        return ZonVar(10, RegT.F, None, None)
+                    
+                else:
+                    if temp.regt == RegT.X:
+                        self.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 10, temp, 0)
+                        return ZonVar(10, RegT.X, None, None)
+                    
+                    else:
+                        self.emit_f_type(OpCode.OP_F, 10, temp, temp, 0x00, F7.FSGNJ_D)
+                        return ZonVar(10, RegT.F, None, None)
+                        
+
     def emit_jump(self, label):
         self.emit_j_type(OpCode.JAL, 0x0, label)
     
@@ -563,7 +679,23 @@ class Emitter:
                         return self.generate_not_expr(node)
                         
             case VariableExpr():
-                return self.symbol_table.resolve(node.name)
+                print(self.symbol_table.scopes)
+                var = self.symbol_table.resolve(node.name)
+                if var.reg is None:
+                    if var.zontype.num in [1, 3, 6]:
+                        reg_temp = self.reg_manager.alloc_temp()
+                        self.emit_i_type(OpCode.L, F3_L.LD, reg_temp, 8, var.offset_stack)
+                        reg_temp.zontype = var.zontype
+                        return reg_temp
+                    
+                    elif var.zontype.num in [2, 7]:
+                        reg_temp = self.reg_manager.alloc_ftemp()
+                        self.emit_i_type(OpCode.FL, F3_FL.FLD, reg_temp, 8, var.offset_stack)
+                        reg_temp.zontype = var.zontype
+                        return reg_temp
+
+                else:
+                    return var
             
             case BlockExpr():
                 self.symbol_table.enter_scope()

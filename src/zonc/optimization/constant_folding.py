@@ -21,7 +21,7 @@ class ConstantFolding:
         # ademas constant folding de llamadas sera aparte
         if node.params is not None:
             span = node.params[0].span
-            folded_param = self.evaluate_static_value(node.params[0], scope)
+            folded_param = self.evaluate_static_value(node.params[0], scope, True)
             new_param = self.transform_to_zonvalue(folded_param)
             new_param.span = span
             if isinstance(new_param, IntLiteral):
@@ -45,9 +45,17 @@ class ConstantFolding:
     
     def visit_Initialization(self, node: InitializationStmt, scope: Enviroment):
         span = node.assign_stmt.value.span
-        folded = self.evaluate_static_value(node.assign_stmt.value, scope)
-        new_node = self.transform_to_zonvalue(folded)
-        new_node.span = span
+        folded = self.evaluate_static_value(node.assign_stmt.value, scope, True)
+        new_node = None
+        new_value = None
+        if isinstance(folded, tuple):
+            new_node = self.transform_to_zonvalue(folded[1])
+            new_node.span = span
+            new_value = folded[0]
+        else:
+            new_node = self.transform_to_zonvalue(folded)
+            new_node.span = span
+            new_value = new_node
         
         symbol = Symbol(node.decl_stmt.mut, node.decl_stmt.type, False, node.decl_stmt.span)
         scope.define(node.decl_stmt.name, symbol)
@@ -58,7 +66,7 @@ class ConstantFolding:
                 error = self.check_range_int(new_node.value, symbol.zontype.name, span)
             
             if not error:
-                node.assign_stmt.value = new_node
+                node.assign_stmt.value = new_value
                 symbol.value = new_node
                 
         elif isinstance(new_node, FloatLiteral):
@@ -67,22 +75,31 @@ class ConstantFolding:
                 error = self.check_range_float(new_node.value, symbol.zontype.name, span)
             
             if not error:
-                node.assign_stmt.value = new_node
+                node.assign_stmt.value = new_value
                 symbol.value = new_node
                 
         elif isinstance(new_node, BoolLiteral):
-            node.assign_stmt.value = new_node
+            node.assign_stmt.value = new_value
             symbol.value = new_node if True else False
             
         else:
-            node.assign_stmt.value = new_node
+            node.assign_stmt.value = new_value
             symbol.value = new_node
         
     def visit_Assignment(self, node: AssignmentStmt, scope: Enviroment):
-        span = node.span
-        folded = self.evaluate_static_value(node.value, scope)
-        new_node = self.transform_to_zonvalue(folded)
-        new_node.span = span
+        span = node.value.span
+        folded = self.evaluate_static_value(node.value, scope, True)
+        new_node = None
+        new_value = None
+        if isinstance(folded, tuple):
+            new_node = self.transform_to_zonvalue(folded[1])
+            new_node.span = span
+            new_value = folded[0]
+        else:
+            new_node = self.transform_to_zonvalue(folded)
+            new_node.span = span
+            new_value = new_node
+            
         symbol = scope.get_symbol(node.name)
         
         if isinstance(new_node, IntLiteral):
@@ -91,7 +108,7 @@ class ConstantFolding:
                 error = self.check_range_int(new_node.value, symbol.zontype.name, span)
             
             if not error:
-                node.assign_stmt.value = new_node
+                node.value = new_value
                 symbol.value = new_node
                 
         elif isinstance(new_node, FloatLiteral):
@@ -100,22 +117,22 @@ class ConstantFolding:
                 error = self.check_range_float(new_node.value, symbol.zontype.name, span)
             
             if not error:
-                node.assign_stmt.value = new_node
+                node.value = new_value
                 symbol.value = new_node
                 
         elif isinstance(new_node, BoolLiteral):
-            node.value = new_node
+            node.value = new_value
             symbol.value = new_node if True else False
             
         else:
-            node.value = new_node
+            node.value = new_value
             symbol.value = new_node
 
-    def evaluate_static_value(self, node, scope: Enviroment):
+    def evaluate_static_value(self, node, scope: Enviroment, in_var = False):
         match node:
             case BinaryExpr():
-                left = self.evaluate_static_value(node.left, scope)
-                right = self.evaluate_static_value(node.right, scope)
+                left = self.evaluate_static_value(node.left, scope, in_var)
+                right = self.evaluate_static_value(node.right, scope, in_var)
 
                 if (isinstance(left, (int, float)) and not isinstance(left, bool)) and (isinstance(right, (int, float)) and not isinstance(right, bool)):
                     try:
@@ -214,6 +231,9 @@ class ConstantFolding:
                 return node
 
             case IntLiteral():
+                if in_var:
+                    return node.value
+                
                 if self.check_range_int(node.value, "int64", node.span):
                     return node
                 return node.value
@@ -234,6 +254,9 @@ class ConstantFolding:
                     )
                     return node
                 
+                if in_var:
+                    return node.value
+                
                 if self.check_range_float(node.value, "double", node.span):
                     return node
                 return node.value
@@ -244,11 +267,11 @@ class ConstantFolding:
             case VariableExpr():
                 symbol = scope.get_symbol(node.name)
                 if not symbol.mutability:
-                    return self.evaluate_static_value(symbol.value, scope)
+                    return self.evaluate_static_value(symbol.value, scope, in_var)
                 return node
             
             case UnaryExpr():
-                value = self.evaluate_static_value(node.value, scope)
+                value = self.evaluate_static_value(node.value, scope, in_var)
                 if isinstance(value, (int, float)) and node.operator == Operator.NEG:
                     return -(value)
                 
@@ -259,7 +282,7 @@ class ConstantFolding:
                 return node
 
             case BlockExpr():
-                return self.visit_Program(node)
+                return (node, self.visit_Program(node))
             
             case IfForm():
                 self.visit_If(node, scope)

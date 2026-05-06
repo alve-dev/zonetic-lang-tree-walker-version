@@ -6,6 +6,8 @@ class OpCode(IntEnum):
     OP_IMM = 0x13
     AUIPC = 0x17
     OP_IMM_32 = 0x1B
+    OP_S = 0x23
+    OP_FS = 0x27
     OP = 0x33
     OP_32 = 0x3B
     LUI = 0x37
@@ -41,6 +43,12 @@ class F3_FL(IntEnum):
 class F3_L(IntEnum):
     LD = 0x3
 
+class F3_FS(IntEnum):
+    FSD = 0x3
+    
+class F3_S(IntEnum):
+    SD = 0x3
+
 class F7(IntEnum):
     STANDARD = 0x00
     M_EXT_OR_FADD_D = 0x01
@@ -51,6 +59,7 @@ class F7(IntEnum):
     FDIV_S = 0x0C
     FDIV_D = 0x0D
     FSGNJ_S = 0x10
+    FSGNJ_D = 0x11
     ALT = 0x20
     FCOMP_S = 0x50
     FCOMP_D = 0x51

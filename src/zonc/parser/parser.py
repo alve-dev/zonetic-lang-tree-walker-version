@@ -296,7 +296,7 @@ class Parser:
                 match zon_type._type:
                     case TokenType.KEYWORD_INT64: var_type = ZonType(1, "int64")
                     case TokenType.KEYWORD_FLOAT: var_type = ZonType(2, "float")
-                    case TokenType.KEYWORD_BOOL: var_type = ZonType(3, "bool")
+                    case TokenType.KEYWORD_BOOL: var_type = ZonType(3, "bool") 
                     case TokenType.KEYWORD_STRING: var_type = ZonType(4, "string")
                     case TokenType.KEYWORD_INT32: var_type = ZonType(6, "int32")
                     case TokenType.KEYWORD_DOUBLE: var_type = ZonType(7, "double")

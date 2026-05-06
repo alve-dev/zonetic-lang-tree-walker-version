@@ -11,7 +11,8 @@ class Symbol:
         decl_span: Span,
         scope_object: 'Enviroment' = None,
         value = None,
-        opti = False
+        opti = False,
+        value2 = None
     ):
         self.mutability = mutability
         self.zontype = zontype

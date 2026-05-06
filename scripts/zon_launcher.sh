@@ -179,7 +179,7 @@ if [ "$1" == "rebuild" ]; then
         echo "[ ⌐■_■] <(\"Old binary removed.\")"
     fi
 
-    g++ $BUILD_FLAGS -I"$IncludeVmDir" "$SrcVmDir"/*.cpp -o "$BinaryVm"
+    g++ $BUILD_FLAGS -I"$INCLUDE_VM_DIR" "$SRC_VM_DIR"/*.cpp -o "$BINARY_VM"
 
     if [ $? -ne 0 ]; then
         echo -e "[ X_X] <(\"Error: Failed to build VM.\")"

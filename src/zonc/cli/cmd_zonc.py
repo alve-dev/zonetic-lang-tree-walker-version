@@ -290,11 +290,14 @@ def cmd_zon_compile(rute_script: str = " ", code_source: str = None, direct_zbc:
     
     dce = DeadCodeElimination()
     dce.eliminate_in_program(root_node)
+    
             
     em = Emitter()
+    em.emit_preamble(root_node.stmts)
     for stmt in root_node.stmts:
         em.generate_stmt(stmt)
-        
+    
+    em.epilogue()
     em.emit_i_type(OpCode.OP_IMM, F3_ALU.ADD_SUB, 17, 0x0, 93)
     em.emit_ecall()
     
